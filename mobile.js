@@ -42,10 +42,10 @@
     } catch (e) {}
   }
   ['touchstart', 'pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { once: true, capture: true, passive: true }));
-  // やさしい紙の音（v1.40）：音ファイルが読めないときの代わり。ふんわり始まり、ふんわり消える小さな「ふわっ」
+  // やさしい紙の音（v1.41）：音ファイルが読めないときの代わり。ふんわり始まり、ふんわり消える小さな「ふわっ」
   function paperSound(ctx, out, t0, strength, dir = 'next') {
     const sr = ctx.sampleRate, fwd = dir !== 'prev';
-    const dur = fwd ? 0.22 : 0.18, pk = fwd ? 0.35 : 0.30;
+    const dur = fwd ? 0.26 : 0.22, pk = fwd ? 0.45 : 0.42;
     const b = ctx.createBuffer(1, Math.floor(sr * dur), sr), d = b.getChannelData(0);
     for (let i = 0; i < d.length; i++) {
       const x = i / d.length;
@@ -54,10 +54,10 @@
     }
     const src = ctx.createBufferSource(); src.buffer = b;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
-    if (fwd) { bp.frequency.setValueAtTime(1300, t0); bp.frequency.exponentialRampToValueAtTime(2300, t0 + dur); }
-    else { bp.frequency.setValueAtTime(2100, t0); bp.frequency.exponentialRampToValueAtTime(1200, t0 + dur); }
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4200; // 耳に刺さる高い音は入れない
-    const g = ctx.createGain(); g.gain.value = (fwd ? 0.13 : 0.11) * strength;
+    if (fwd) { bp.frequency.setValueAtTime(1000, t0); bp.frequency.exponentialRampToValueAtTime(1600, t0 + dur); }
+    else { bp.frequency.setValueAtTime(1500, t0); bp.frequency.exponentialRampToValueAtTime(950, t0 + dur); }
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2800; // 耳に刺さる高い音は入れない
+    const g = ctx.createGain(); g.gain.value = (fwd ? 0.065 : 0.055) * strength;
     src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
     src.start(t0);
   }
@@ -86,9 +86,8 @@
   function volMul() { return VOL[set().pageVol] || VOL.small; }
   window.__kcPaperSound = paperSound; // 確認用
 
-  // ---------- 曲がりながらめくれるページ ----------
-  // ページを細い短冊に分け、短冊ごとに角度を少しずつ変えて並べる → 紙がたわんだ曲面に見える
-  const STRIPS = 18;
+  // ---------- 平らなままめくれるページ（v1.41：曲面はやめて平面に戻した） ----------
+  const STRIPS = 1;
   function makePage(from, dir) {
     const sr = stage.getBoundingClientRect(), cr = card.getBoundingClientRect();
     const W = cr.width, H = cr.height, sw = W / STRIPS;
@@ -120,7 +119,7 @@
   function setTurn(pg, t) {
     // t：0（平ら）〜1（めくり終わり）。β＝ページ全体の角度、κ＝端ほど強く反る量
     pg.t = t;
-    const beta = t * 180, kappa = Math.sin(Math.PI * Math.min(1, t)) * 85;
+    const beta = t * 180, kappa = 0;
     let x = 0, z = 0;
     for (let i = 0; i < pg.strips.length; i++) {
       const r = (i + 0.5) / pg.strips.length;
