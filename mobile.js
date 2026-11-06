@@ -21,22 +21,84 @@
   $('btnSettings').addEventListener('click', () => { if (mq.matches) close(); });
   $('btnAdd').addEventListener('click', () => { if (mq.matches) close(); });
 
-  // 左右にフリック → 次・前の単語（カードの下・理解度ボタン・自動再生の部分も含む画面全体で）
-  // ただし、横にスクロールする部分（出題順・速度など）や入力欄・選択欄の上では反応しない
-  let sx = 0, sy = 0, st = 0, sOk = false;
+  // 左右にフリック → 次・前の単語（画面の下の端まで、どこでも）
+  // 本のページをめくるように、今のカードが指について回転しながらめくれ、下から次の単語が現れる
   const main = document.querySelector('.main');
-  const NO_SWIPE = '.topbar, .speeds, select, input, textarea, .m-backdrop, .overlay';
-  main.addEventListener('touchstart', (e) => {
-    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now();
-    sOk = e.touches.length === 1 && !(e.target.closest && e.target.closest(NO_SWIPE));
-  }, { passive: true });
-  main.addEventListener('touchend', (e) => {
-    if (!sOk || !mq.matches) return;
-    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Date.now() - st > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    (dx < 0 ? $('btnNext') : $('btnPrev')).click();
-  }, { passive: true });
+  const stage = document.querySelector('.stage');
   const card = $('card');
+  const NO_SWIPE = '.topbar, input, textarea, .m-backdrop, .overlay';
+  let g = null; // 指の動き
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function makePage(dir) {
+    // 今のカードの見た目を写した「ページ」を上に重ね、下のカードは中身を隠して白紙にする
+    const page = card.cloneNode(true);
+    page.removeAttribute('id'); page.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    page.classList.add('m-page');
+    const sr = stage.getBoundingClientRect(), cr = card.getBoundingClientRect();
+    Object.assign(page.style, { left: (cr.left - sr.left) + 'px', top: (cr.top - sr.top) + 'px', width: cr.width + 'px', height: cr.height + 'px',
+      transformOrigin: dir === 'next' ? 'left center' : 'right center' });
+    const shade = document.createElement('div'); shade.className = 'm-shade ' + dir; page.appendChild(shade);
+    stage.appendChild(page);
+    const b1 = card.querySelector('.card-body'), b2 = page.querySelector('.card-body');
+    if (b1 && b2) b2.scrollTop = b1.scrollTop;
+    card.classList.add('m-blank');
+    return page;
+  }
+  function setTurn(p, dir, t) {
+    // t：0（平ら）〜1（めくり終わり）
+    const ang = (dir === 'next' ? -1 : 1) * (t * 112);
+    p.style.transform = `perspective(1300px) rotateY(${ang}deg)`;
+    p.style.boxShadow = `0 ${6 + t * 18}px ${18 + t * 40}px rgba(0,0,0,${0.08 + t * 0.22})`;
+    const sh = p.querySelector('.m-shade'); if (sh) sh.style.opacity = String(Math.min(.55, t * .9));
+  }
+  function endTurn(commit) {
+    const { page, dir } = g; g = null;
+    page.classList.add('m-anim');
+    if (commit) {
+      (dir === 'next' ? $('btnNext') : $('btnPrev')).click(); // 下のカードに次の単語を表示
+      card.classList.remove('m-blank');
+      card.classList.add('m-under'); setTimeout(() => card.classList.remove('m-under'), 320);
+      setTurn(page, dir, 1);
+      page.style.opacity = '0';
+    } else {
+      setTurn(page, dir, 0);
+    }
+    setTimeout(() => { page.remove(); if (!commit) card.classList.remove('m-blank'); }, 300);
+  }
+  main.addEventListener('touchstart', (e) => {
+    if (g && g.page) return;
+    if (!mq.matches || e.touches.length !== 1 || (e.target.closest && e.target.closest(NO_SWIPE))) { g = null; return; }
+    const t = e.touches[0];
+    g = { x0: t.clientX, y0: t.clientY, t0: Date.now(), page: null, dir: null, dx: 0 };
+  }, { passive: true });
+  main.addEventListener('touchmove', (e) => {
+    if (!g) return;
+    const t = e.touches[0], dx = t.clientX - g.x0, dy = t.clientY - g.y0;
+    if (!g.page) {
+      if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) { g = null; return; } // 縦のスクロール
+      if (Math.abs(dx) < 14) return;
+      const dir = dx < 0 ? 'next' : 'prev';
+      const btn = dir === 'next' ? $('btnNext') : $('btnPrev');
+      if (btn.disabled) { g.edge = true; card.style.transform = `translateX(${dx * 0.18}px)`; return; } // 端：少しだけ動いて戻る
+      g.dir = dir; g.page = makePage(dir);
+    }
+    if (g.edge) { card.style.transform = `translateX(${dx * 0.18}px)`; return; }
+    g.dx = dx;
+    const w = card.getBoundingClientRect().width || 360;
+    const prog = clamp((g.dir === 'next' ? -dx : dx) / (w * 0.95), 0, 1);
+    setTurn(g.page, g.dir, prog);
+  }, { passive: true });
+  const finish = () => {
+    if (!g) return;
+    if (g.edge) { card.style.transition = 'transform .2s'; card.style.transform = ''; setTimeout(() => { card.style.transition = ''; }, 220); g = null; return; }
+    if (!g.page) { g = null; return; }
+    const w = card.getBoundingClientRect().width || 360;
+    const dist = g.dir === 'next' ? -g.dx : g.dx;
+    const speed = dist / Math.max(1, Date.now() - g.t0);
+    endTurn(dist > w * 0.28 || (speed > 0.45 && dist > 30));
+  };
+  main.addEventListener('touchend', finish, { passive: true });
+  main.addEventListener('touchcancel', () => { if (g && g.page) endTurn(false); else g = null; }, { passive: true });
 
   // 大きな単語が途中で改行されないように、はみ出すときは文字を小さくする（熟語は単語の切れ目でだけ改行）
   function fitWord() {
@@ -54,6 +116,7 @@
   requestAnimationFrame(fitWord);
 
   // 引き出しも左スワイプで閉じる
+  let sx = 0, sy = 0;
   const side = document.querySelector('.side');
   side.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
   side.addEventListener('touchend', (e) => { const t = e.changedTouches[0]; if (sx - t.clientX > 70 && Math.abs(t.clientY - sy) < 60) close(); }, { passive: true });

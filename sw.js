@@ -1,5 +1,5 @@
 // ことばカード：オフライン用（自動生成）
-const CACHE = 'kc-1.34.0-2e5c6bbcf2';
+const CACHE = 'kc-1.35.0-d3861106ed';
 const CORE = ["./", "index.html", "style.css", "mobile.css", "renderer.js", "i18n.js", "pattern.js", "web-net.js", "web-api.js", "mobile.js", "web-worker.js", "web-drive.js", "sync.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "fonts/zmg-500.css", "fonts/zmg-700.css", "data/toeic.tsv.gz", "data/examples.tsv.gz", "data/dict.tsv.gz", "data/dict-lemma.tsv.gz"];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

@@ -37,6 +37,16 @@
   .word { word-break: normal; overflow-wrap: normal; hyphens: none; max-width: 100%; min-width: 0; flex: 0 1 auto; overflow: hidden; }
   .word-row { gap: 10px; }
   .main { touch-action: pan-y; }
+  /* ページめくり */
+  .stage { perspective: 1300px; }
+  .m-page { position: absolute; z-index: 4; margin: 0; pointer-events: none; backface-visibility: hidden; will-change: transform; }
+  .m-page.m-anim { transition: transform .28s cubic-bezier(.3,.7,.3,1), box-shadow .28s, opacity .28s ease-in; }
+  .m-shade { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
+  .m-shade.next { background: linear-gradient(90deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.35)); }
+  .m-shade.prev { background: linear-gradient(270deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.35)); }
+  .card.m-blank > * { visibility: hidden; }
+  .card.m-under > * { animation: m-rise .3s ease-out; }
+  @keyframes m-rise { from { opacity: .35; transform: scale(.985); } to { opacity: 1; transform: none; } }
   .card-top { top: 12px; left: 16px; right: 16px; font-size: 12px; }
   .dict { padding: 0 2px; }
   .dict-s { white-space: normal; }

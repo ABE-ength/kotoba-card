@@ -309,7 +309,8 @@ function ipaAccent(ipa) {
   for (const ch of s) {
     if (ch === 'ˈ' || ch === 'ˌ') { pending = ch === 'ˈ' ? 'p' : 's'; continue; }
     if (pending && isV(ch)) {
-      out.push(`<span class="ipa-acc ${pending === 'p' ? 'acc1' : 'acc2'}">${esc(ch)}${pending === 'p' ? '́' : '̀'}</span>`);
+      // v1.35：アクセント記号は文字の合成ではなく、母音の上に重ねて描く（スマホなどフォントによって位置がずれるため）
+      out.push(`<span class="ipa-acc ${pending === 'p' ? 'acc1' : 'acc2'}">${esc(ch)}</span>`);
       marked = marked || pending === 'p'; pending = null; continue;
     }
     out.push(esc(ch));
@@ -320,7 +321,7 @@ function ipaAccent(ipa) {
     if (nuclei.length === 1) {
       const i = [...s].findIndex(isV);
       const chars = [...s].map(esc);
-      chars[i] = `<span class="ipa-acc acc1">${chars[i]}́</span>`;
+      chars[i] = `<span class="ipa-acc acc1">${chars[i]}</span>`;
       return chars.join('');
     }
   }

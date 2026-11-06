@@ -605,3 +605,11 @@ select:focus { border-color: var(--accent); }
 #syncPanel [hidden] { display: none !important; }
 .sync-status { font-size: 13.5px; color: var(--ink); }
 .sync-err { color: var(--red); }
+
+/* v1.35 アクセント記号：母音の真上に重ねて描く（´＝第1アクセント、`＝第2アクセント）。フォントに左右されない */
+.ipa-acc { position: relative; display: inline-block; }
+.ipa-acc::after { position: absolute; left: 50%; top: -.24em; transform: translateX(-50%); font-family: 'Nunito', 'Segoe UI', sans-serif;
+  font-size: .95em; line-height: 1; font-weight: 800; pointer-events: none; }
+.ipa-acc.acc1::after { content: '\00B4'; }
+.ipa-acc.acc2::after { content: '\0060'; top: -.2em; }
+.ipa-txt { padding-top: .25em; }
