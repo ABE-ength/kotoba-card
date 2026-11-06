@@ -406,7 +406,14 @@ function refreshRelated(slot) {
     w.relShown = shown;
   }
   save();
+  // v1.49：例文を入れ替えても、画面の位置（スクロール）はそのままにする
+  const scrollers = [document.scrollingElement, ...document.querySelectorAll('.card-body, .main, .stage, .card')]
+    .filter(x => x && x.scrollTop > 0).map(x => [x, x.scrollTop, x.classList ? [...x.classList].join('.') : '']);
   renderCard();
+  for (const [x, top, cls] of scrollers) {
+    const el2 = x.isConnected ? x : (cls ? document.querySelector('.' + cls.split('.')[0]) : null);
+    if (el2) el2.scrollTop = top;
+  }
   const el = document.querySelectorAll('.rel-item');
   if (slot === 'all') el.forEach(x => x.classList.add('fresh'));
   else if (el[Number(slot)]) el[Number(slot)].classList.add('fresh');
