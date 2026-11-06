@@ -40,16 +40,16 @@
   .main, .main * { touch-action: pan-y; }
   .topbar, .topbar * { touch-action: auto; }
   .speeds { overflow-x: visible; }
-  /* ページめくり */
-  .stage { perspective: 1300px; }
-  .m-page { position: absolute; z-index: 4; margin: 0; pointer-events: none; backface-visibility: hidden; will-change: transform; }
-  .m-page.m-anim { transition: transform .28s cubic-bezier(.3,.7,.3,1), box-shadow .28s, opacity .28s ease-in; }
-  .m-shade { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; }
-  .m-shade.next { background: linear-gradient(90deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.35)); }
-  .m-shade.prev { background: linear-gradient(270deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.35)); }
-  .card.m-blank > * { visibility: hidden; }
-  .card.m-under > * { animation: m-rise .3s ease-out; }
-  @keyframes m-rise { from { opacity: .35; transform: scale(.985); } to { opacity: 1; transform: none; } }
+  /* ページめくり（短冊を並べて曲面に見せる） */
+  .stage { perspective: 1500px; perspective-origin: 50% 40%; }
+  .m-curl { position: absolute; z-index: 4; pointer-events: none; transform-style: preserve-3d; }
+  .m-strip { position: absolute; top: 0; overflow: hidden; backface-visibility: visible; will-change: transform; outline: 1px solid transparent; -webkit-font-smoothing: antialiased; }
+  .m-strip .m-face { box-shadow: none !important; }
+  .m-strip.back .m-face { visibility: hidden; }
+  .m-strip.back { background: linear-gradient(90deg, #f3eef0, #e6dfe2); }
+  .m-sh { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+  /* めくっている間、下に見える次の単語はぼんやり（めくるほどはっきり） */
+  .stage.m-peeking > .card > * { filter: blur(calc((1 - var(--pk, 0)) * 3.5px)); opacity: calc(.38 + var(--pk, 0) * .62); }
   .card-top { top: 12px; left: 16px; right: 16px; font-size: 12px; }
   .dict { padding: 0 2px; }
   .dict-s { white-space: normal; }
