@@ -137,17 +137,17 @@
   <div class="modal">
     <h2 id="editTitle">単語を追加</h2>
     <form id="editForm" autocomplete="off">
-      <label class="field"><span><span data-i18n="f.word">単語</span> <em data-i18n="f.required">必須</em></span><input id="fWord" type="text" data-i18n-ph="ph.word" placeholder="例）postpone"></label>
-      <label class="field"><span><span data-i18n="f.meaning">意味</span> <em data-i18n="f.required">必須</em></span><input id="fMeaning" type="text" data-i18n-ph="ph.meaning" placeholder="例）延期する"></label>
-      <label class="field"><span data-i18n="f.ex">例文</span><textarea id="fEx" rows="2" data-i18n-ph="ph.ex" placeholder="例）The meeting was postponed until Friday."></textarea></label>
-      <label class="field"><span data-i18n="f.exja">例文の訳</span><textarea id="fExJa" rows="2" data-i18n-ph="ph.exja" placeholder="例）会議は金曜日まで延期された。"></textarea></label>
-      <label class="field"><span data-i18n="f.note">メモ</span><textarea id="fNote" rows="2" data-i18n-ph="ph.note" placeholder="品詞・言い換え・覚え方など"></textarea></label>
-      <div class="modal-foot">
+      <div class="modal-foot modal-foot-top">
         <label class="chk" id="keepWrap"><input type="checkbox" id="fKeep"> <span data-i18n="edit.keep">続けて追加する</span></label>
         <div class="spacer"></div>
         <button type="button" class="btn btn-ghost" id="editCancel" data-i18n="cancel">キャンセル</button>
         <button type="submit" class="btn btn-primary" id="editSave"><span data-i18n="save">保存</span> <small>Ctrl+Enter</small></button>
       </div>
+      <label class="field"><span><span data-i18n="f.word">単語</span> <em data-i18n="f.required">必須</em></span><input id="fWord" type="text" data-i18n-ph="ph.word" placeholder="例）postpone"></label>
+      <label class="field"><span><span data-i18n="f.meaning">意味</span> <em data-i18n="f.required">必須</em></span><input id="fMeaning" type="text" data-i18n-ph="ph.meaning" placeholder="例）延期する"></label>
+      <label class="field"><span data-i18n="f.ex">例文</span><textarea id="fEx" rows="2" data-i18n-ph="ph.ex" placeholder="例）The meeting was postponed until Friday."></textarea></label>
+      <label class="field"><span data-i18n="f.exja">例文の訳</span><textarea id="fExJa" rows="2" data-i18n-ph="ph.exja" placeholder="例）会議は金曜日まで延期された。"></textarea></label>
+      <label class="field"><span data-i18n="f.note">メモ</span><textarea id="fNote" rows="2" data-i18n-ph="ph.note" placeholder="品詞・言い換え・覚え方など"></textarea></label>
     </form>
   </div>
 </div>
@@ -160,10 +160,6 @@
     <div class="set-sec">
       <h3 data-i18n="set.display">表示・操作</h3>
       <div class="set-row"><span data-i18n="set.theme">背景の色</span><div class="themes" id="themes"></div></div>
-      <div class="set-row"><span data-i18n="set.size">文字の大きさ</span>
-        <div class="seg seg-sm" id="sizes"></div>
-      </div>
-      <p class="hint" style="margin-top:-4px" data-i18n="set.size.hint">選ぶとすぐに画面全体の文字・ボタンの大きさが変わります（Ctrl＋＋／Ctrl＋－でも変更できます）。</p>
       <div class="set-row"><span data-i18n="set.blindAlpha">目隠しの透明度</span>
         <div class="ba-ctl" id="blindAlphas"></div>
       </div>

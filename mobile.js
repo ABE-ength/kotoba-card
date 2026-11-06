@@ -286,7 +286,7 @@
     row.after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.46.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.47.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
@@ -331,6 +331,15 @@
   const dataHint = 'データはこの端末のブラウザの中に保存しています。ブラウザの「閲覧データの削除」でサイトのデータを消すと単語も消えるので、Googleドライブ同期を使うか、ときどき「バックアップを書き出す」で保存してください。毎日の自動バックアップ（14日分）もブラウザの中に残します。';
   try { if (typeof I18N !== 'undefined' && I18N.ja) I18N.ja['set.data.hint'] = dataHint; } catch (e) {}
   document.querySelectorAll('[data-i18n="set.data.hint"]').forEach(el => { el.textContent = dataHint; });
+  // スマホ（Android）の声は、ブラウザから男女を選べないことが多い。その場合は端末の「読み上げの声」の設定で決まる（v1.47）
+  try {
+    if (/Android/i.test(navigator.userAgent) && typeof I18N !== 'undefined' && I18N.ja) {
+      I18N.ja['voice.fallback'] = '「{a}」の声をアプリから選べないため、端末の声「{v}」で読み上げています。スマホの「設定 → テキスト読み上げ（音声出力）→ Google 音声サービス の歯車 → 音声データをインストール → {p}」で、男性・女性の声を選んでください。';
+      I18N.ja['toast.accentSub'] = '「{a}」の声をアプリから選べないため、{v}で読み上げます（スマホの読み上げ設定で声を選べます。設定画面の「発音」に手順があります）';
+      I18N.ja['accent.uk.pack'] = 'English (United Kingdom)';
+      I18N.ja['accent.us.pack'] = 'English (United States)';
+    }
+  } catch (e) {}
   // 戻るボタン（Android）で引き出し・画面を閉じる
   window.addEventListener('popstate', () => {
     if (document.body.classList.contains('drawer-open')) { close(); return; }

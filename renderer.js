@@ -17,9 +17,7 @@ const DEFAULT_SETTINGS = {
   playContent: 'wm', rate: 1.0, gap: 1, loop: false, accent: 'uk-f', jaVoice: '', zoom: 1, theme: 'sky', showRelated: true, useGeneral: true, webSearch: true, showIpa: true, showDict: true, imeAuto: true, lang: 'ja', blindAlpha: 3
 };
 const BLIND_MIN = 0, BLIND_MAX = 20, BLIND_DEF = 3; // 目隠しの透明度（％・1％単位）
-const ZOOMS = [
-  { v: 0.8 }, { v: 0.9 }, { v: 1 }, { v: 1.15 }, { v: 1.3 }
-];
+const ZOOMS = [{ v: 1 }]; // v1.47：文字の大きさは「普通」だけにした（大・極大で表示が欠けるため）
 const GAPS = [0.1, 0.3, 0.5, 1, 2];
 const SPEEDS = [0.5, 0.8, 1.0, 1.2, 1.5, 2.0, 2.5, 3.0];
 const THEMES = [
@@ -664,6 +662,7 @@ function setZoom(z) {
   toast(t('toast.zoom', { l: t('zoom.' + z) }));
 }
 function stepZoom(d) {
+  if (ZOOMS.length < 2) return;
   const i = ZOOMS.findIndex(x => x.v === set().zoom);
   const n = Math.max(0, Math.min(ZOOMS.length - 1, (i < 0 ? 2 : i) + d));
   setZoom(ZOOMS[n].v);
@@ -782,8 +781,8 @@ const isFemale = (v) => v.gender ? /female/i.test(v.gender) : FEMALE.test(v.name
 const isMale = (v) => v.gender ? /^male/i.test(v.gender) : MALE.test(v.name.replace(FEMALE, ''));
 function voicesFor(lang) { return voices.filter(v => v.lang.toLowerCase().replace('_', '-').startsWith(lang)); }
 // Windowsの音声名から性別を判定（Microsoft Hazel=英女性, David=米男性 など）
-const FEMALE = /(hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|zira|aria|jenny|ana|michelle|emma|ava|serena|kate|female)/i;
-const MALE = /(david|mark|guy|christopher|eric|roger|steffan|andrew|brian|davis|jason|tony|george|ryan|alfie|elliot|ethan|noah|oliver|thomas|james|male)/i;
+const FEMALE = /(-x-(?:sfg|tpc|tpf|iob|iog|gba|gbc|gbg|fis)|hazel|susan|libby|sonia|maisie|mia|abbi|bella|hollie|olivia|zira|aria|jenny|ana|michelle|emma|ava|serena|kate|female)/i;
+const MALE = /(-x-(?:tpd|iol|iom|gbb|gbd|rjs)|david|mark|guy|christopher|eric|roger|steffan|andrew|brian|davis|jason|tony|george|ryan|alfie|elliot|ethan|noah|oliver|thomas|james|male)/i;
 const ACCENTS = {
   'uk-f': { lang: /en-gb/i, female: true, want: FEMALE, avoid: MALE, get label() { return t('accent.uk.long'); }, get pack() { return t('accent.uk.pack'); } },
   'us-m': { lang: /en-us/i, female: false, want: MALE, avoid: FEMALE, get label() { return t('accent.us.long'); }, get pack() { return t('accent.us.pack'); } }
@@ -1364,7 +1363,7 @@ function bind() {
     setBlindAlpha(set().blindAlpha + Number(b.dataset.bstep));
   };
   $('blindAlphas').oninput = (e) => { if (e.target.id === 'blindRange') setBlindAlpha(e.target.value); };
-  $('sizes').onclick = (e) => {
+  if ($('sizes')) $('sizes').onclick = (e) => {
     const b = e.target.closest('[data-zoom]'); if (!b) return;
     setZoom(Number(b.dataset.zoom));
   };

@@ -613,3 +613,6 @@ select:focus { border-color: var(--accent); }
 .ipa-acc.acc1::after { content: '\00B4'; }
 .ipa-acc.acc2::after { content: '\0060'; top: -.2em; }
 .ipa-txt { padding-top: .25em; }
+/* v1.47：追加・編集画面の保存・キャンセルを一番上に。例の文字はうすく */
+.modal-foot.modal-foot-top { margin-top: 0; margin-bottom: 14px; }
+.field input::placeholder, .field textarea::placeholder { color: currentColor; opacity: .28; }
