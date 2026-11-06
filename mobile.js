@@ -133,21 +133,40 @@
     page.classList.remove('m-blank', 'm-under', 'm-peek'); page.style.cssText = '';
     page.classList.add('m-page');
     Object.assign(page.style, { left: (cr.left - sr.left) + 'px', top: (cr.top - sr.top) + 'px', width: cr.width + 'px', height: cr.height + 'px',
-      transformOrigin: dir === 'next' ? 'left center' : 'right center' });
+      transformOrigin: 'left center' }); // v1.54：本と同じく、進むときも戻るときも左側が軸
     const shade = document.createElement('div'); shade.className = 'm-shade ' + dir; page.appendChild(shade);
     stage.appendChild(page);
     const b1 = from.querySelector('.card-body'), b2 = page.querySelector('.card-body');
     if (b1 && b2) b2.scrollTop = b1.scrollTop;
     return { wrap: page, shade, dir, t: 0 };
   }
+  // 戻るときに下に敷く「今のページ」（めくって戻ってくる前のページが、上から重なってくる）
+  function makeUnder(from) {
+    const sr = stage.getBoundingClientRect(), cr = card.getBoundingClientRect();
+    const u = from.cloneNode(true);
+    u.removeAttribute('id'); u.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    u.classList.remove('m-blank', 'm-under', 'm-peek'); u.style.cssText = '';
+    u.classList.add('m-page', 'm-under-old');
+    Object.assign(u.style, { left: (cr.left - sr.left) + 'px', top: (cr.top - sr.top) + 'px', width: cr.width + 'px', height: cr.height + 'px', zIndex: 3 });
+    stage.appendChild(u);
+    const b1 = from.querySelector('.card-body'), b2 = u.querySelector('.card-body');
+    if (b1 && b2) b2.scrollTop = b1.scrollTop;
+    return u;
+  }
   function setTurn(pg, t) {
-    // t：0（平ら）〜1（めくり終わり）
+    // t：0（めくり始め）〜1（めくり終わり）
+    // 進む：今のページが左を軸に開いていく（0°→-112°）
+    // 戻る：前のページが左側から、左を軸に閉じてくる（-112°→0°）。下の今のページはだんだんぼやける
     pg.t = t;
-    const ang = (pg.dir === 'next' ? -1 : 1) * (t * 112);
-    pg.wrap.style.transform = `perspective(1300px) rotateY(${ang}deg)`;
-    pg.wrap.style.boxShadow = `0 ${6 + t * 18}px ${18 + t * 40}px rgba(0,0,0,${0.08 + t * 0.22})`;
-    pg.shade.style.opacity = String(Math.min(.55, t * .9));
-    card.style.setProperty('--pk', String(Math.min(1, t * 1.15)));
+    const open = pg.dir === 'next' ? t : 1 - t; // ページの開き具合
+    pg.wrap.style.transform = `perspective(1300px) rotateY(${-112 * open}deg)`;
+    pg.wrap.style.boxShadow = `0 ${6 + open * 18}px ${18 + open * 40}px rgba(0,0,0,${0.08 + open * 0.22})`;
+    pg.shade.style.opacity = String(Math.min(.55, open * .9));
+    if (pg.dir === 'next') card.style.setProperty('--pk', String(Math.min(1, t * 1.15)));
+    else if (pg.under) {
+      const k = Math.min(1, t * 1.15);
+      for (const el of pg.under.children) { el.style.filter = `blur(${k * 3.5}px)`; el.style.opacity = String(1 - k * .62); }
+    }
   }
   function animateTo(pg, target, ms, done) {
     const from = pg.t, t0 = performance.now();
@@ -155,9 +174,9 @@
     const step = (now) => {
       const u = Math.min(1, (now - t0) / ms);
       setTurn(pg, from + (target - from) * ease(u));
-      if (target === 1) pg.wrap.style.opacity = String(1 - u * u);
+      if (target === 1 && pg.dir === 'next') pg.wrap.style.opacity = String(1 - u * u);
       if (u < 1) requestAnimationFrame(step);
-      else { pg.wrap.remove(); done && done(); }
+      else { pg.wrap.remove(); if (pg.under) { pg.under.remove(); pg.under = null; } done && done(); }
     };
     requestAnimationFrame(step);
   }
@@ -175,9 +194,9 @@
     if (mq.matches && snap && id && snapId && id !== snapId && !byGesture) {
       const n = Math.max(1, (S.queue || []).length);
       const dir = (S.idx === (snapIdx + 1) % n) ? 'next' : (S.idx === (snapIdx - 1 + n) % n) ? 'prev' : (S.idx > snapIdx ? 'next' : 'prev');
-      const pg = makePage(snap, dir);
-      peekStart(); setTurn(pg, 0);
-      animateTo(pg, 1, 300, peekEnd);
+      let pg;
+      if (dir === 'next') { pg = makePage(snap, dir); peekStart(); setTurn(pg, 0); animateTo(pg, 1, 300, peekEnd); }
+      else { const under = makeUnder(snap); pg = makePage(card, dir); pg.under = under; setTurn(pg, 0); animateTo(pg, 1, 340); }
       if (!S.playing) flipSound(0.9, dir);
     }
     byGesture = false;
@@ -231,8 +250,10 @@
       if (btn.disabled || !curId()) { g.edge = true; }
       else {
         if (S.playing) stopPlay();
-        g.dir = dir; g.page = makePage(card, dir);
-        g.save = peekTo(dir); peekStart(); setTurn(g.page, 0);
+        g.dir = dir;
+        if (dir === 'next') { g.page = makePage(card, dir); g.save = peekTo(dir); peekStart(); }
+        else { const under = makeUnder(card); g.save = peekTo(dir); g.page = makePage(card, dir); g.page.under = under; }
+        setTurn(g.page, 0);
       }
     }
     // 横にめくっている間はブラウザに指の動きを渡さない。渡すと指を離したあとも「はじき」の動きが続き、
@@ -278,7 +299,7 @@
     autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.53.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.54.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => {
