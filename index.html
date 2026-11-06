@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; media-src 'self' blob:; worker-src 'self'; connect-src 'self' https://api.dictionaryapi.dev https://*.wikipedia.org https://*.wiktionary.org https://*.wikinews.org https://api.tatoeba.org https://tatoeba.org">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EAF3FB">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>ことばカード</title>
+<link rel="stylesheet" href="fonts/zmg-500.css">
+<link rel="stylesheet" href="fonts/zmg-700.css">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 左：単語一覧 ===== -->
+  <aside class="side">
+    <div class="side-head">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span data-i18n="app.name">ことばカード</span>
+      </div>
+      <button id="btnAdd" class="btn btn-primary btn-block" data-i18n="side.add">＋ 単語を追加</button>
+    </div>
+
+    <div class="search-wrap">
+      <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="search" type="text" data-i18n-ph="side.search" placeholder="単語・意味を検索" autocomplete="off">
+    </div>
+
+    <div class="filters" id="filters"></div>
+    <div class="list-note" id="listNote"></div>
+
+    <ul id="list" class="list" tabindex="-1"></ul>
+
+    <div class="side-foot">
+      <button id="btnSettings" class="btn btn-ghost btn-sm" data-i18n="side.settings">⚙ 設定・データ</button>
+      <span class="count" id="totalCount"></span>
+    </div>
+  </aside>
+
+  <!-- ===== 右：カード ===== -->
+  <main class="main">
+    <header class="topbar">
+      <div class="seg" id="modes" role="tablist" data-i18n-aria="mode.aria" aria-label="出題モード">
+        <button data-mode="order" data-i18n="mode.order" title="新しく登録した単語が上">登録順</button>
+        <button data-mode="hard" data-i18n="mode.hard">分からない順</button>
+        <button data-mode="efficient" data-i18n="mode.efficient" title="覚えている見込みが低い（忘れかけている）単語から出します">忘れかけた順</button>
+        <button data-mode="random" data-i18n="mode.random">ランダム</button>
+        <button data-mode="alpha" data-i18n="mode.alpha" title="A→Zの順">アルファベット順</button>
+      </div>
+      <div class="topbar-right">
+        <div class="seg seg-sm" id="accents" data-i18n-title="accent.title" title="発音の声">
+          <button data-accent="uk-f" data-i18n="accent.uk">英国・女性</button>
+          <button data-accent="us-m" data-i18n="accent.us">米国・男性</button>
+        </div>
+        <div class="hide-wrap" data-i18n-title="hide.title" title="目隠し（Hキーで切り替え）">
+          <span class="hide-label" data-i18n="hide.label">目隠し</span>
+          <div class="seg seg-sm" id="hideModes">
+            <button data-hide="none" data-i18n="hide.none" data-i18n-title="hide.none.t">オフ</button>
+            <button data-hide="word" data-i18n="hide.word" data-i18n-title="hide.word.t">単語の訳</button>
+            <button data-hide="ja" data-i18n="hide.ja" data-i18n-title="hide.ja.t">全和訳</button>
+            <button data-hide="all" data-i18n="hide.all" data-i18n-title="hide.all.t">全部</button>
+          </div>
+        </div>
+        <button id="btnReshuffle" class="btn btn-ghost btn-sm" data-i18n="reshuffle" data-i18n-title="reshuffle.t">↻ 並べ直す</button>
+      </div>
+    </header>
+
+    <section class="stage">
+      <button class="nav nav-prev" id="btnPrev" data-i18n-title="nav.prev" data-i18n-aria="nav.prev" title="前へ（←）" aria-label="前へ">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+
+      <div class="card" id="card">
+        <!-- JSで描画 -->
+      </div>
+
+      <button class="nav nav-next" id="btnNext" data-i18n-title="nav.next" data-i18n-aria="nav.next" title="次へ（→）" aria-label="次へ">
+        <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </section>
+
+    <div class="rate" id="rate">
+      <button class="rate-btn r-no" data-rate="no"><span class="key">1</span><span data-i18n="status.no">分からない</span></button>
+      <button class="rate-btn r-some" data-rate="some"><span class="key">2</span><span data-i18n="status.some">少しわかる</span></button>
+      <button class="rate-btn r-yes" data-rate="yes"><span class="key">3</span><span data-i18n="status.yes">分かる</span></button>
+    </div>
+
+    <footer class="player">
+      <button id="btnPlay" class="btn btn-play" data-i18n-title="play.t" title="自動再生（P）">
+        <svg class="ico-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>
+        <svg class="ico-stop" viewBox="0 0 24 24"><rect x="7" y="6" width="3.6" height="12" rx="1.2"/><rect x="13.4" y="6" width="3.6" height="12" rx="1.2"/></svg>
+        <span id="playLabel">自動再生</span>
+      </button>
+
+      <div class="pgroup">
+        <span class="plabel" data-i18n="player.content">読み上げ</span>
+        <select id="selContent">
+          <option value="w" data-i18n="content.w">単語だけ</option>
+          <option value="m" data-i18n="content.m">意味だけ</option>
+          <option value="e" data-i18n="content.e">例文だけ</option>
+          <option value="wm" data-i18n="content.wm">単語＋意味</option>
+          <option value="we" data-i18n="content.we" data-i18n-title="content.we.t" title="自分の例文と関連する例文を読みます">単語＋例文</option>
+          <option value="all" data-i18n="content.all">全部</option>
+        </select>
+      </div>
+
+      <div class="pgroup">
+        <span class="plabel" data-i18n="player.speed">速度</span>
+        <div class="speeds" id="speeds"></div>
+      </div>
+
+      <div class="pgroup">
+        <span class="plabel" data-i18n="player.gap">間隔</span>
+        <select id="selGap">
+          <option value="0.1">0.1秒</option>
+          <option value="0.3">0.3秒</option>
+          <option value="0.5">0.5秒</option>
+          <option value="1">1秒</option>
+          <option value="2">2秒</option>
+        </select>
+      </div>
+
+      <label class="chk"><input type="checkbox" id="optLoop"> <span data-i18n="player.loop">くり返す</span></label>
+    </footer>
+  </main>
+</div>
+
+<!-- ===== 追加・編集 ===== -->
+<div class="overlay" id="editModal" hidden>
+  <div class="modal">
+    <h2 id="editTitle">単語を追加</h2>
+    <form id="editForm" autocomplete="off">
+      <label class="field"><span><span data-i18n="f.word">単語</span> <em data-i18n="f.required">必須</em></span><input id="fWord" type="text" data-i18n-ph="ph.word" placeholder="例）postpone"></label>
+      <label class="field"><span><span data-i18n="f.meaning">意味</span> <em data-i18n="f.required">必須</em></span><input id="fMeaning" type="text" data-i18n-ph="ph.meaning" placeholder="例）延期する"></label>
+      <label class="field"><span data-i18n="f.ex">例文</span><textarea id="fEx" rows="2" data-i18n-ph="ph.ex" placeholder="例）The meeting was postponed until Friday."></textarea></label>
+      <label class="field"><span data-i18n="f.exja">例文の訳</span><textarea id="fExJa" rows="2" data-i18n-ph="ph.exja" placeholder="例）会議は金曜日まで延期された。"></textarea></label>
+      <label class="field"><span data-i18n="f.note">メモ</span><textarea id="fNote" rows="2" data-i18n-ph="ph.note" placeholder="品詞・言い換え・覚え方など"></textarea></label>
+      <div class="modal-foot">
+        <label class="chk" id="keepWrap"><input type="checkbox" id="fKeep"> <span data-i18n="edit.keep">続けて追加する</span></label>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-ghost" id="editCancel" data-i18n="cancel">キャンセル</button>
+        <button type="submit" class="btn btn-primary" id="editSave"><span data-i18n="save">保存</span> <small>Ctrl+Enter</small></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== 設定 ===== -->
+<div class="overlay" id="setModal" hidden>
+  <div class="modal modal-wide">
+    <h2 data-i18n="set.title">設定・データ</h2>
+
+    <div class="set-sec">
+      <h3 data-i18n="set.display">表示・操作</h3>
+      <div class="set-row"><span data-i18n="set.theme">背景の色</span><div class="themes" id="themes"></div></div>
+      <div class="set-row"><span data-i18n="set.size">文字の大きさ</span>
+        <div class="seg seg-sm" id="sizes"></div>
+      </div>
+      <p class="hint" style="margin-top:-4px" data-i18n="set.size.hint">選ぶとすぐに画面全体の文字・ボタンの大きさが変わります（Ctrl＋＋／Ctrl＋－でも変更できます）。</p>
+      <div class="set-row"><span data-i18n="set.blindAlpha">目隠しの透明度</span>
+        <div class="ba-ctl" id="blindAlphas"></div>
+      </div>
+      <p class="hint" style="margin-top:-4px" data-i18n="set.blindAlpha.hint">0％で完全に隠れます。数字が大きいほど下の和訳がうっすら透けて見えます（既定は3％・0〜20％を1％単位で調整）。</p>
+      <label class="set-row chk"><input type="checkbox" id="optIme"> <span data-i18n="opt.ime">単語の追加・編集で、日本語入力を自動で切り替える（単語・例文＝半角英数、意味・訳・メモ＝ひらがな）</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optAutoNext"> <span data-i18n="opt.autoNext">理解度ボタンを押したら次の単語へ進む</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optAutoSpeak"> <span data-i18n="opt.autoSpeak">単語を表示したら自動で発音する</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optRelated"> <span data-i18n="opt.related">関連する例文を自動で探して表示する（最大2文・ネット接続不要）</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optGeneral"> <span data-i18n="opt.general">TOEIC例文が足りない単語は、一般例文で補う（「一般」と表示）</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optDict"> <span data-i18n="opt.dict">入力した意味の下に、辞書の意味（品詞つき）を小さく表示する</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optIpa"> <span data-i18n="opt.ipa">1単語だけの登録は、発音記号をインターネットで調べて表示する（英・米）</span></label>
+      <label class="set-row chk"><input type="checkbox" id="optWeb"> <span data-i18n="opt.web">どちらにもない単語は、インターネットで例文を検索する（「検索情報」と表示）</span></label>
+      <p class="hint" style="margin-top:-6px" data-i18n-html="set.related.hint"></p>
+    </div>
+
+    <div class="set-sec">
+      <h3 data-i18n="set.voice">発音</h3>
+      <div class="set-row"><span data-i18n="set.en">英語の発音</span>
+        <div class="seg seg-sm" id="accents2">
+          <button data-accent="uk-f" data-i18n="accent.uk.long">イギリス英語・女性</button>
+          <button data-accent="us-m" data-i18n="accent.us.long">アメリカ英語・男性</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="testEn" data-i18n="test">試聴</button>
+      </div>
+      <p class="hint" id="enVoiceInfo"></p>
+      <div class="set-row"><span data-i18n="set.mvoice">意味の読み上げの声</span><select id="selJaVoice"></select><button class="btn btn-ghost btn-sm" id="testJa" data-i18n="test">試聴</button></div>
+      <p class="hint" id="voiceHint"></p>
+    </div>
+
+    <div class="set-sec">
+      <h3 data-i18n="set.data">データ</h3>
+      <p class="hint"><span data-i18n="set.data.where">保存場所：</span><code id="dataPath"></code><br><span data-i18n="set.data.hint"></span></p>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" id="btnImport" data-i18n="set.import">インポート（JSON / CSV）</button>
+        <button class="btn btn-ghost btn-sm" id="btnExportJson" data-i18n="set.exportJson">バックアップを書き出す（JSON）</button>
+        <button class="btn btn-ghost btn-sm" id="btnExportCsv" data-i18n="set.exportCsv">CSVで書き出す</button>
+        <button class="btn btn-ghost btn-sm" id="btnOpenFolder" data-i18n="set.openFolder">保存フォルダを開く</button>
+      </div>
+      <p class="hint" data-i18n="set.csv.hint"></p>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" id="btnResetStats" data-i18n="set.reset">理解度の記録をすべてリセット</button>
+      </div>
+    </div>
+
+    <div class="set-sec">
+      <h3 data-i18n="set.keys.title">ショートカット</h3>
+      <p class="hint keys" data-i18n="set.keys"></p>
+    </div>
+
+    <div class="modal-foot"><div class="spacer"></div><button class="btn btn-primary" id="setClose" data-i18n="close">閉じる</button></div>
+  </div>
+</div>
+
+<!-- ===== 確認ダイアログ ===== -->
+<div class="overlay" id="askModal" hidden>
+  <div class="modal modal-sm">
+    <h2 id="askTitle"></h2>
+    <p id="askMsg" class="ask-msg"></p>
+    <div class="modal-foot" id="askBtns"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="pattern.js"></script>
+<script src="web-net.js"></script>
+<script src="web-api.js"></script>
+<script src="i18n.js"></script>
+<script src="renderer.js"></script>
+<script src="mobile.js"></script>
+</body>
+</html>
