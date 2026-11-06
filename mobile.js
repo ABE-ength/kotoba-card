@@ -41,38 +41,37 @@
     } catch (e) {}
   }
   ['touchstart', 'pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { once: true, capture: true, passive: true }));
-  // 紙の音：ザッという雑音（音の高さが上がっていく）＋最後の「パサッ」＋かすかな低い音
-  function paperSound(ctx, out, t0, strength) {
-    const sr = ctx.sampleRate;
-    const noise = (sec, shape) => {
-      const b = ctx.createBuffer(1, Math.floor(sr * sec), sr), d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) { const x = i / d.length; d[i] = (Math.random() * 2 - 1) * shape(x); }
-      const s1 = ctx.createBufferSource(); s1.buffer = b; return s1;
-    };
-    // 1) こすれる音
-    const w = noise(0.2, x => Math.min(1, x / 0.08) * Math.pow(1 - x, 1.4) * (0.6 + 0.4 * Math.sin(x * 55 + Math.sin(x * 17) * 3)));
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.55;
-    bp.frequency.setValueAtTime(900, t0); bp.frequency.exponentialRampToValueAtTime(3800, t0 + 0.2);
-    const g1 = ctx.createGain(); g1.gain.value = 1.3 * strength;
-    w.connect(bp); bp.connect(g1); g1.connect(out); w.start(t0);
-    // 2) 最後の「パサッ」
-    const snap = noise(0.05, x => Math.pow(1 - x, 3));
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800;
-    const g2 = ctx.createGain(); g2.gain.value = 0.75 * strength;
-    snap.connect(hp); hp.connect(g2); g2.connect(out); snap.start(t0 + 0.15);
-    // 3) かすかな低い音（紙が落ちる感じ）
-    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(140, t0 + 0.14); o.frequency.exponentialRampToValueAtTime(70, t0 + 0.24);
-    const g3 = ctx.createGain(); g3.gain.setValueAtTime(0.0001, t0 + 0.14); g3.gain.exponentialRampToValueAtTime(0.25 * strength, t0 + 0.155); g3.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.26);
-    o.connect(g3); g3.connect(out); o.start(t0 + 0.14); o.stop(t0 + 0.3);
+  // 紙の音（v1.38）：文庫本の1ページをめくるような、小さく軽い「サラッ」。低い音は入れない。
+  //   進む＝明るく上がっていく「サラッ」、戻る＝少し短く下がっていく「スッ」
+  function paperSound(ctx, out, t0, strength, dir = 'next') {
+    const sr = ctx.sampleRate, fwd = dir !== 'prev';
+    const dur = fwd ? 0.15 : 0.12;
+    const b = ctx.createBuffer(1, Math.floor(sr * dur), sr), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const x = i / d.length;
+      // ふわっと立ち上がって、すっと消える。途中で紙がこすれる小さな波を2回
+      const env = Math.min(1, x / 0.12) * Math.pow(1 - x, fwd ? 1.6 : 2.0) * (0.75 + 0.25 * Math.sin(Math.PI * 2 * (fwd ? 2.2 : 1.6) * x));
+      let v = (Math.random() * 2 - 1) * 0.55;
+      if (Math.random() < 0.012) v += (Math.random() * 2 - 1) * 1.6; // 紙のかすかなカサカサ
+      d[i] = v * env;
+    }
+    const src = ctx.createBufferSource(); src.buffer = b;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800; hp.Q.value = 0.5;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
+    if (fwd) { bp.frequency.setValueAtTime(3000, t0); bp.frequency.exponentialRampToValueAtTime(6200, t0 + dur); }
+    else { bp.frequency.setValueAtTime(5600, t0); bp.frequency.exponentialRampToValueAtTime(2800, t0 + dur); }
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 9000; // 耳に痛い高い音は抑える
+    const g = ctx.createGain(); g.gain.value = (fwd ? 1.15 : 0.95) * strength;
+    src.connect(hp); hp.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
+    src.start(t0);
   }
-  function flipSound(strength = 1) {
+  function flipSound(strength = 1, dir = 'next') {
     if (!soundOn()) return;
     try {
       unlockAudio();
-      const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 6;
-      const master = ac.createGain(); master.gain.value = 1.0;
-      comp.connect(master); master.connect(ac.destination);
-      paperSound(ac, comp, ac.currentTime + 0.01, strength);
+      const master = ac.createGain(); master.gain.value = 1;
+      master.connect(ac.destination);
+      paperSound(ac, master, ac.currentTime + 0.01, strength, dir);
     } catch (e) {}
   }
   window.__kcPaperSound = paperSound; // 確認用
@@ -162,7 +161,7 @@
       const pg = makePage(snap, dir);
       peekStart(); setTurn(pg, 0);
       animateTo(pg, 1, 430, peekEnd);
-      if (!S.playing) flipSound(0.9);
+      if (!S.playing) flipSound(0.9, dir);
     }
     byGesture = false;
     snap = card.cloneNode(true); snapId = id; snapIdx = S.idx;
@@ -230,7 +229,7 @@
     const speed = dist / Math.max(1, Date.now() - cur.t0);
     const commit = !cancel && (dist > w * 0.28 || (speed > 0.45 && dist > 30));
     if (commit) {
-      flipSound(1);
+      flipSound(1, cur.dir);
       animateTo(cur.page, 1, 260 * (1 - cur.page.t) + 80, () => {
         g = null; peekEnd();
         // 確定：前の位置に戻してから正式に移動（一覧の印・自動発音など）
@@ -255,7 +254,7 @@
     const cb = row.querySelector('input');
     const sync = () => { cb.checked = soundOn(); };
     $('btnSettings').addEventListener('click', () => setTimeout(sync, 0));
-    cb.onchange = () => { set().pageSound = cb.checked; save(); if (cb.checked) flipSound(0.8); };
+    cb.onchange = () => { set().pageSound = cb.checked; save(); if (cb.checked) flipSound(0.9, 'next'); };
     setTimeout(sync, 1500);
   }
 
