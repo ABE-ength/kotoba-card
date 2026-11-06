@@ -42,10 +42,10 @@
     } catch (e) {}
   }
   ['touchstart', 'pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { once: true, capture: true, passive: true }));
-  // やさしい紙の音（v1.41）：音ファイルが読めないときの代わり。ふんわり始まり、ふんわり消える小さな「ふわっ」
+  // 軽やかな紙の音（v1.43）：音ファイルが読めないときの代わり。ふんわり始まり、ふんわり消える小さな「ふわっ」
   function paperSound(ctx, out, t0, strength, dir = 'next') {
     const sr = ctx.sampleRate, fwd = dir !== 'prev';
-    const dur = fwd ? 0.26 : 0.22, pk = fwd ? 0.45 : 0.42;
+    const dur = fwd ? 0.20 : 0.17, pk = fwd ? 0.30 : 0.28;
     const b = ctx.createBuffer(1, Math.floor(sr * dur), sr), d = b.getChannelData(0);
     for (let i = 0; i < d.length; i++) {
       const x = i / d.length;
@@ -54,10 +54,10 @@
     }
     const src = ctx.createBufferSource(); src.buffer = b;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
-    if (fwd) { bp.frequency.setValueAtTime(1000, t0); bp.frequency.exponentialRampToValueAtTime(1600, t0 + dur); }
-    else { bp.frequency.setValueAtTime(1500, t0); bp.frequency.exponentialRampToValueAtTime(950, t0 + dur); }
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2800; // 耳に刺さる高い音は入れない
-    const g = ctx.createGain(); g.gain.value = (fwd ? 0.065 : 0.055) * strength;
+    if (fwd) { bp.frequency.setValueAtTime(2400, t0); bp.frequency.exponentialRampToValueAtTime(3800, t0 + dur); }
+    else { bp.frequency.setValueAtTime(3500, t0); bp.frequency.exponentialRampToValueAtTime(2300, t0 + dur); }
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000; // 耳に刺さる高い音は入れない
+    const g = ctx.createGain(); g.gain.value = (fwd ? 0.045 : 0.038) * strength;
     src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
     src.start(t0);
   }
@@ -86,60 +86,29 @@
   function volMul() { return VOL[set().pageVol] || VOL.small; }
   window.__kcPaperSound = paperSound; // 確認用
 
-  // ---------- 平らなままめくれるページ（v1.41：曲面はやめて平面に戻した） ----------
-  const STRIPS = 1;
+  // ---------- めくれるページ（v1.43：v1.35 の動きに戻した） ----------
+  // 今のカードを写した1枚のページを重ね、端を軸に回転させる（最大112°・裏は見せない）。影はめくる側の端に
   function makePage(from, dir) {
     const sr = stage.getBoundingClientRect(), cr = card.getBoundingClientRect();
-    const W = cr.width, H = cr.height, sw = W / STRIPS;
-    const wrap = document.createElement('div');
-    wrap.className = 'm-curl';
-    Object.assign(wrap.style, { left: (cr.left - sr.left) + 'px', top: (cr.top - sr.top) + 'px', width: W + 'px', height: H + 'px' });
-    const base = from.cloneNode(true);
-    base.removeAttribute('id'); base.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-    base.classList.remove('m-blank', 'm-under', 'm-peek'); base.style.cssText = '';
-    const scroll = (from.querySelector('.card-body') || {}).scrollTop || 0;
-    const strips = [];
-    for (let i = 0; i < STRIPS; i++) {
-      // 短冊 i は、軸（次へ＝左端、前へ＝右端）から i 番目
-      const st = document.createElement('div'); st.className = 'm-strip';
-      const left = dir === 'next' ? i * sw : W - (i + 1) * sw; // 元の位置（左から）
-      Object.assign(st.style, { width: (sw + 1.2) + 'px', height: H + 'px', left: (dir === 'next' ? left : left - 1.2) + 'px',
-        transformOrigin: dir === 'next' ? 'left center' : 'right center' });
-      const c = i === 0 ? base : base.cloneNode(true);
-      c.classList.add('m-face');
-      Object.assign(c.style, { position: 'absolute', top: '0', left: (dir === 'next' ? -left : -left + 1.2) + 'px', width: W + 'px', height: H + 'px', margin: '0' });
-      const sh = document.createElement('div'); sh.className = 'm-sh';
-      st.appendChild(c); st.appendChild(sh); wrap.appendChild(st);
-      strips.push({ el: st, sh, face: c });
-    }
-    stage.appendChild(wrap);
-    strips.forEach(s1 => { const b = s1.face.querySelector('.card-body'); if (b) b.scrollTop = scroll; });
-    return { wrap, strips, dir, W, sw, t: 0 };
+    const page = from.cloneNode(true);
+    page.removeAttribute('id'); page.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    page.classList.remove('m-blank', 'm-under', 'm-peek'); page.style.cssText = '';
+    page.classList.add('m-page');
+    Object.assign(page.style, { left: (cr.left - sr.left) + 'px', top: (cr.top - sr.top) + 'px', width: cr.width + 'px', height: cr.height + 'px',
+      transformOrigin: dir === 'next' ? 'left center' : 'right center' });
+    const shade = document.createElement('div'); shade.className = 'm-shade ' + dir; page.appendChild(shade);
+    stage.appendChild(page);
+    const b1 = from.querySelector('.card-body'), b2 = page.querySelector('.card-body');
+    if (b1 && b2) b2.scrollTop = b1.scrollTop;
+    return { wrap: page, shade, dir, t: 0 };
   }
   function setTurn(pg, t) {
-    // t：0（平ら）〜1（めくり終わり）。β＝ページ全体の角度、κ＝端ほど強く反る量
+    // t：0（平ら）〜1（めくり終わり）
     pg.t = t;
-    const beta = t * 180, kappa = 0;
-    let x = 0, z = 0;
-    for (let i = 0; i < pg.strips.length; i++) {
-      const r = (i + 0.5) / pg.strips.length;
-      const phi = Math.min(180, beta + kappa * r * r);
-      const rad = phi * Math.PI / 180;
-      const s1 = pg.strips[i];
-      // 軸から曲面に沿って x 進んだ位置・手前に z 浮いた位置に、角度 phi で置く
-      if (pg.dir === 'next') s1.el.style.transform = `translate3d(${x - i * pg.sw}px,0,${z}px) rotateY(${-phi}deg)`;
-      else s1.el.style.transform = `translate3d(${-x + i * pg.sw}px,0,${z}px) rotateY(${phi}deg)`;
-      const back = Math.cos(rad) < 0;
-      s1.el.classList.toggle('back', back);
-      // 影は短冊の中でなめらかに変える（短冊の境目が目立たないように）
-      const shade = (deg) => { const c = Math.cos(Math.min(180, deg) * Math.PI / 180); return c < 0 ? 0.18 + 0.25 * (1 + c) : (1 - c) * 0.42; };
-      const ra = i / pg.strips.length, rb = (i + 1) / pg.strips.length;
-      const a0 = shade(beta + kappa * ra * ra), a1 = shade(beta + kappa * rb * rb);
-      s1.sh.style.opacity = '1';
-      s1.sh.style.background = `linear-gradient(${pg.dir === 'next' ? 90 : 270}deg, rgba(0,0,0,${a0.toFixed(3)}), rgba(0,0,0,${a1.toFixed(3)}))`;
-      x += pg.sw * Math.cos(rad); z += pg.sw * Math.sin(rad);
-    }
-    pg.wrap.style.filter = `drop-shadow(0 ${6 + t * 14}px ${10 + t * 20}px rgba(0,0,0,${0.08 + Math.sin(Math.PI * t) * 0.22}))`;
+    const ang = (pg.dir === 'next' ? -1 : 1) * (t * 112);
+    pg.wrap.style.transform = `perspective(1300px) rotateY(${ang}deg)`;
+    pg.wrap.style.boxShadow = `0 ${6 + t * 18}px ${18 + t * 40}px rgba(0,0,0,${0.08 + t * 0.22})`;
+    pg.shade.style.opacity = String(Math.min(.55, t * .9));
     card.style.setProperty('--pk', String(Math.min(1, t * 1.15)));
   }
   function animateTo(pg, target, ms, done) {
@@ -148,6 +117,7 @@
     const step = (now) => {
       const u = Math.min(1, (now - t0) / ms);
       setTurn(pg, from + (target - from) * ease(u));
+      if (target === 1) pg.wrap.style.opacity = String(1 - u * u);
       if (u < 1) requestAnimationFrame(step);
       else { pg.wrap.remove(); done && done(); }
     };
@@ -169,7 +139,7 @@
       const dir = (S.idx === (snapIdx + 1) % n) ? 'next' : (S.idx === (snapIdx - 1 + n) % n) ? 'prev' : (S.idx > snapIdx ? 'next' : 'prev');
       const pg = makePage(snap, dir);
       peekStart(); setTurn(pg, 0);
-      animateTo(pg, 1, 430, peekEnd);
+      animateTo(pg, 1, 300, peekEnd);
       if (!S.playing) flipSound(0.9, dir);
     }
     byGesture = false;
@@ -239,7 +209,7 @@
     const commit = !cancel && (dist > w * 0.28 || (speed > 0.45 && dist > 30));
     if (commit) {
       flipSound(1, cur.dir);
-      animateTo(cur.page, 1, 260 * (1 - cur.page.t) + 80, () => {
+      animateTo(cur.page, 1, 280, () => {
         g = null; peekEnd();
         // 確定：前の位置に戻してから正式に移動（一覧の印・自動発音など）
         S.idx = cur.save.idx; byGesture = true;
@@ -247,7 +217,7 @@
         snap = card.cloneNode(true); snapId = curId(); snapIdx = S.idx;
       });
     } else {
-      animateTo(cur.page, 0, 260 * cur.page.t + 60, () => { g = null; peekEnd(); unpeek(cur.save); snap = card.cloneNode(true); snapId = curId(); snapIdx = S.idx; });
+      animateTo(cur.page, 0, 280, () => { g = null; peekEnd(); unpeek(cur.save); snap = card.cloneNode(true); snapId = curId(); snapIdx = S.idx; });
     }
   }
   function onEnd() { release(false); }
@@ -270,7 +240,7 @@
     row.after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.42.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.43.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
