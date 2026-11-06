@@ -36,7 +36,10 @@
   .card { padding: 34px 16px 12px; border-radius: 22px; touch-action: pan-y; }
   .word { word-break: normal; overflow-wrap: normal; hyphens: none; max-width: 100%; min-width: 0; flex: 0 1 auto; overflow: hidden; }
   .word-row { gap: 10px; }
-  .main { touch-action: pan-y; }
+  /* 横の指の動きをブラウザに取られないように（上の帯は横スクロールするので除く） */
+  .main, .main * { touch-action: pan-y; }
+  .topbar, .topbar * { touch-action: auto; }
+  .speeds { overflow-x: visible; }
   /* ページめくり */
   .stage { perspective: 1300px; }
   .m-page { position: absolute; z-index: 4; margin: 0; pointer-events: none; backface-visibility: hidden; will-change: transform; }
