@@ -57,7 +57,7 @@
     if (fwd) { bp.frequency.setValueAtTime(2400, t0); bp.frequency.exponentialRampToValueAtTime(3800, t0 + dur); }
     else { bp.frequency.setValueAtTime(3500, t0); bp.frequency.exponentialRampToValueAtTime(2300, t0 + dur); }
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000; // 耳に刺さる高い音は入れない
-    const g = ctx.createGain(); g.gain.value = (fwd ? 0.045 : 0.038) * strength;
+    const g = ctx.createGain(); g.gain.value = (fwd ? 0.0225 : 0.019) * strength;
     src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
     src.start(t0);
   }
@@ -248,7 +248,7 @@
     row.after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.44.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.45.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
