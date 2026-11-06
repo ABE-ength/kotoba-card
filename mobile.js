@@ -37,6 +37,7 @@
     try {
       ac = ac || new (window.AudioContext || window.webkitAudioContext)();
       if (ac.state !== 'running') ac.resume();
+      loadRec();
       const b = ac.createBuffer(1, 1, ac.sampleRate), s0 = ac.createBufferSource(); s0.buffer = b; s0.connect(ac.destination); s0.start(0);
     } catch (e) {}
   }
@@ -65,13 +66,24 @@
     src.connect(hp); hp.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
     src.start(t0);
   }
+  // v1.39：本をめくった録音（利用者の録音を切り出して整えたもの）を使う。読み込めないときは作った音
+  const rec = { next: null, prev: null, loading: false };
+  function loadRec() {
+    if (rec.loading || !ac) return;
+    rec.loading = true;
+    [['next', 'sounds/flip-forward.wav'], ['prev', 'sounds/flip-back.wav']].forEach(([k, url]) => {
+      fetch(url).then(r => r.arrayBuffer()).then(b => new Promise((res, rej) => ac.decodeAudioData(b, res, rej))).then(buf => { rec[k] = buf; }).catch(() => {});
+    });
+  }
   function flipSound(strength = 1, dir = 'next') {
     if (!soundOn()) return;
     try {
-      unlockAudio();
-      const master = ac.createGain(); master.gain.value = 1;
+      unlockAudio(); loadRec();
+      const master = ac.createGain(); master.gain.value = strength;
       master.connect(ac.destination);
-      paperSound(ac, master, ac.currentTime + 0.01, strength, dir);
+      const buf = rec[dir === 'prev' ? 'prev' : 'next'];
+      if (buf) { const s2 = ac.createBufferSource(); s2.buffer = buf; s2.connect(master); s2.start(ac.currentTime + 0.005); }
+      else paperSound(ac, master, ac.currentTime + 0.01, 0.8, dir);
     } catch (e) {}
   }
   window.__kcPaperSound = paperSound; // 確認用
