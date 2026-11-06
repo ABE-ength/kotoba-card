@@ -148,6 +148,10 @@
   new MutationObserver(() => afterRender()).observe(card, { childList: true });
 
   // ---------- 指でめくる ----------
+  // 指でめくったときは、下のカードに次の単語を描いてあるので、確定のときに描き直さない
+  let noRender = false;
+  const renderCard0 = window.renderCard;
+  window.renderCard = function () { if (noRender) return; return renderCard0.apply(this, arguments); };
   let g = null;
   const topLimit = () => { const b = card.querySelector('.card-top') || card; return b.getBoundingClientRect().top - 4; };
   const blocked = (e) => document.body.classList.contains('drawer-open') || (e.target.closest && e.target.closest(NO_SWIPE)) || ['editModal', 'setModal', 'askModal'].some(id => $(id) && !$(id).hidden);
@@ -173,7 +177,7 @@
     g = { x0: t.clientX, y0: t.clientY, t0: Date.now(), page: null, dir: null, dx: 0, tgt: e.target };
     // 指の下の要素は、めくり始めに描き直されて画面から外れることがある。
     // そのあとも指の動きを受け取れるよう、触れた要素そのものにも受け取り口を付ける
-    e.target.addEventListener('touchmove', onMove, { passive: true });
+    e.target.addEventListener('touchmove', onMove, { passive: false }); // 横にめくるときはブラウザの「はじき」の動きを止める（下で preventDefault）
     e.target.addEventListener('touchend', onEnd, { passive: true });
     e.target.addEventListener('touchcancel', onCancel, { passive: true });
   }, { passive: true, capture: true });
@@ -193,6 +197,9 @@
         g.save = peekTo(dir); peekStart(); setTurn(g.page, 0);
       }
     }
+    // 横にめくっている間はブラウザに指の動きを渡さない。渡すと指を離したあとも「はじき」の動きが続き、
+    // その間のタップ（スピーカーなど）が「はじきを止める操作」として扱われて押せなかった（v1.44で修正）
+    if (e.cancelable) e.preventDefault();
     if (g.edge) { card.style.transform = `translateX(${dx * 0.18}px)`; return; } // 端：少しだけ動いて戻る
     g.dx = dx;
     const w = g.page.W || 360;
@@ -209,13 +216,14 @@
     const commit = !cancel && (dist > w * 0.28 || (speed > 0.45 && dist > 30));
     if (commit) {
       flipSound(1, cur.dir);
-      animateTo(cur.page, 1, 280, () => {
-        g = null; peekEnd();
-        // 確定：前の位置に戻してから正式に移動（一覧の印・自動発音など）
-        S.idx = cur.save.idx; byGesture = true;
-        go(cur.dir === 'next' ? S.idx + 1 : S.idx - 1);
-        snap = card.cloneNode(true); snapId = curId(); snapIdx = S.idx;
-      });
+      // 確定はめくり始めに済ませる（一覧の印・自動発音など）。下のカードはもう次の単語なので描き直さない。
+      // 以前はめくり終わりに描き直していたため、その瞬間にスピーカーを押すと押した印が消えて鳴らなかった（v1.44で修正）
+      S.idx = cur.save.idx; byGesture = true;
+      noRender = true;
+      try { go(cur.dir === 'next' ? S.idx + 1 : S.idx - 1); } finally { noRender = false; }
+      byGesture = false;
+      snap = card.cloneNode(true); snapId = curId(); snapIdx = S.idx;
+      animateTo(cur.page, 1, 280, () => { g = null; peekEnd(); });
     } else {
       animateTo(cur.page, 0, 280, () => { g = null; peekEnd(); unpeek(cur.save); snap = card.cloneNode(true); snapId = curId(); snapIdx = S.idx; });
     }
@@ -240,7 +248,7 @@
     row.after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.43.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.44.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
