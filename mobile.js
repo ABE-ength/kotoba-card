@@ -278,7 +278,7 @@
     autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.51.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.52.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => {
@@ -306,24 +306,24 @@
   window.addEventListener('resize', () => requestAnimationFrame(fitWord));
   requestAnimationFrame(fitWord);
 
-  // ---------- 本の厚みで進み具合を表す（v1.51：左側だけ・2倍の厚み） ----------
-  // カードの左に「読み終えたページ」の束を、紙の小口のような縞で描く。進むほど厚くなる。
-  // カードの左に余白を少し足して束を置く（カードの幅は8pxだけ狭くなる）
+  // ---------- 本の厚みで進み具合を表す（v1.52：右側に「残りのページ」。めくるほど薄くなる） ----------
+  // カードの右に残りのページの束を、紙の小口のような縞で描く。最初は厚く、最後の単語でいちばん薄い
+  // カードの右に余白を少し足して束を置く（カードの幅は8pxだけ狭くなる）
   const BOOK_MIN = 2, BOOK_MAX = 16; // 厚み（px）
-  const bookL = document.createElement('div');
-  bookL.className = 'm-book l'; bookL.setAttribute('aria-hidden', 'true');
-  stage.prepend(bookL);
+  const bookR = document.createElement('div');
+  bookR.className = 'm-book r'; bookR.setAttribute('aria-hidden', 'true');
+  stage.prepend(bookR);
   function updateBook() {
     const n = (S.queue || []).length;
     const on = mq.matches && n >= 2 && !!card.offsetParent;
     stage.classList.toggle('m-has-book', on);
-    if (!on) { bookL.style.display = 'none'; return; }
-    const p = Math.max(0, Math.min(1, S.idx / (n - 1)));
+    if (!on) { bookR.style.display = 'none'; return; }
+    const rest = 1 - Math.max(0, Math.min(1, S.idx / (n - 1))); // 残りの割合
     const sr = stage.getBoundingClientRect(), cr = card.getBoundingClientRect();
     const inset = 14, top = cr.top - sr.top + inset, h = Math.max(0, cr.height - inset * 2);
-    const w = Math.round((BOOK_MIN + (BOOK_MAX - BOOK_MIN) * p) * 2) / 2;
-    Object.assign(bookL.style, { display: '', top: top + 'px', height: h + 'px', width: w + 'px', left: (cr.left - sr.left - w) + 'px' });
-    bookL.title = `${S.idx + 1} / ${n}`;
+    const w = Math.round((BOOK_MIN + (BOOK_MAX - BOOK_MIN) * rest) * 2) / 2;
+    Object.assign(bookR.style, { display: '', top: top + 'px', height: h + 'px', width: w + 'px', left: (cr.right - sr.left) + 'px' });
+    bookR.title = `${S.idx + 1} / ${n}`;
   }
   new MutationObserver(() => requestAnimationFrame(updateBook)).observe(card, { childList: true });
   window.addEventListener('resize', () => requestAnimationFrame(updateBook));

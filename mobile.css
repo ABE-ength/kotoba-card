@@ -80,13 +80,13 @@
   .modal-foot { flex-wrap: wrap; justify-content: flex-end; }
 }
 @media (max-width: 760px) {
-  /* 本の厚み（v1.51）：左側だけ。紙の小口のような縞を2倍くっきり。外側ほど少し短くして厚みに見せる */
-  .stage.m-has-book { padding-left: 16px; }
+  /* 本の厚み（v1.52）：右側だけ（残りのページ）。紙の小口のような縞。外側ほど少し短くして厚みに見せる */
+  .stage.m-has-book { padding-right: 16px; }
   .m-book { position: absolute; z-index: 0; pointer-events: none;
-    background: repeating-linear-gradient(90deg, var(--panel) 0 1.5px, var(--accent) 1.5px 2.5px);
-    border-left: 1.5px solid var(--accent); opacity: .55;
-    box-shadow: -1px 1px 4px rgba(40,60,90,.25);
-    clip-path: polygon(0 12px, 100% 0, 100% 100%, 0 calc(100% - 12px));
-    transition: width .25s ease, left .25s ease; }
+    background: repeating-linear-gradient(90deg, var(--accent) 0 1px, var(--panel) 1px 2.5px);
+    border-right: 1.5px solid var(--accent); opacity: .55;
+    box-shadow: 1px 1px 4px rgba(40,60,90,.25);
+    clip-path: polygon(0 0, 100% 12px, 100% calc(100% - 12px), 0 100%);
+    transition: width .25s ease; }
   .stage > .card:not(.m-page) { position: relative; z-index: 1; }
 }
