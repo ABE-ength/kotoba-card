@@ -858,8 +858,9 @@ function speakOne(text, v, rate, resolve) {
     finish();
   });
 }
+let lastCancelAt = 0;
 function cancelSpeech() {
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if ('speechSynthesis' in window) { if (speechSynthesis.speaking || speechSynthesis.pending) lastCancelAt = Date.now(); speechSynthesis.cancel(); }
   audioSeq++;
   if (curAudio) { try { curAudio.pause(); } catch (e) {} }
   if (curAudioDone) curAudioDone();
@@ -883,7 +884,21 @@ function speak(text, lang, rate) {
       resolve();
     }
     u.onend = finish; u.onerror = finish;
-    speechSynthesis.speak(u);
+    // スマホ（Android）では、止めた直後や他の音（めくり音）の直後に頼んだ読み上げが無視されることがある。
+    // 少し間をおいて頼み、始まらなければもう一度頼む（v1.46）
+    const seq = audioSeq;
+    let started = false;
+    u.onstart = () => { started = true; };
+    const ask = () => { if (!done && seq === audioSeq) speechSynthesis.speak(u); };
+    if (Date.now() - lastCancelAt < 250) setTimeout(ask, 80); else ask();
+    setTimeout(() => {
+      if (started || done || seq !== audioSeq) return;
+      speechSynthesis.cancel();
+      const u2 = new SpeechSynthesisUtterance(text);
+      u2.voice = u.voice; u2.lang = u.lang; u2.rate = u.rate;
+      u2.onend = finish; u2.onerror = finish; keepAlive.push(u2);
+      setTimeout(() => { if (!done && seq === audioSeq) speechSynthesis.speak(u2); }, 80);
+    }, 700);
   });
 }
 function sayOnce(text, lang) {

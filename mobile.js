@@ -57,7 +57,7 @@
     if (fwd) { bp.frequency.setValueAtTime(2400, t0); bp.frequency.exponentialRampToValueAtTime(3800, t0 + dur); }
     else { bp.frequency.setValueAtTime(3500, t0); bp.frequency.exponentialRampToValueAtTime(2300, t0 + dur); }
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 6000; // 耳に刺さる高い音は入れない
-    const g = ctx.createGain(); g.gain.value = (fwd ? 0.0225 : 0.019) * strength;
+    const g = ctx.createGain(); g.gain.value = (fwd ? 0.0113 : 0.0095) * strength;
     src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
     src.start(t0);
   }
@@ -79,8 +79,46 @@
       const buf = rec[dir === 'prev' ? 'prev' : 'next'];
       if (buf) { const s2 = ac.createBufferSource(); s2.buffer = buf; s2.connect(master); s2.start(ac.currentTime + 0.005); }
       else paperSound(ac, master, ac.currentTime + 0.01, 1, dir);
+      // 鳴らし終わったら音の出口を休ませる（スマホで読み上げの音とぶつからないように。v1.46）
+      clearTimeout(flipSound.rest);
+      flipSound.rest = setTimeout(() => { try { if (ac && ac.state === 'running') ac.suspend(); } catch (e) {} }, 450);
     } catch (e) {}
   }
+
+  // ---------- タップの取りこぼし対策（v1.46） ----------
+  // めくった直後など、ブラウザがタップを「押した」と扱わないことがある。
+  // カードの中のボタン（スピーカーなど）を軽くタップしたのに押されなかったときは、こちらで押す
+  let tap = null, rescued = null;
+  document.addEventListener('touchstart', (e) => {
+    tap = null;
+    if (e.touches.length !== 1) return;
+    const b = e.target.closest && e.target.closest('#card [data-act], #card button');
+    if (!b) return;
+    const t = e.touches[0];
+    tap = { x: t.clientX, y: t.clientY, at: Date.now(), b };
+  }, { capture: true, passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!tap) return;
+    const t = e.touches[0];
+    if (Math.abs(t.clientX - tap.x) > 10 || Math.abs(t.clientY - tap.y) > 10) tap = null;
+  }, { capture: true, passive: true });
+  document.addEventListener('touchend', () => {
+    const cur = tap; tap = null;
+    if (!cur || Date.now() - cur.at > 700) return;
+    let clicked = false;
+    const seen = (ev) => { if (cur.b.contains(ev.target)) clicked = true; };
+    document.addEventListener('click', seen, true);
+    setTimeout(() => {
+      document.removeEventListener('click', seen, true);
+      if (clicked || !cur.b.isConnected) return;
+      rescued = { b: cur.b, at: Date.now() };
+      cur.b.click();
+    }, 160);
+  }, { capture: true, passive: true });
+  // こちらで押したあとに、遅れてブラウザの「押した」が届いたら、二重にならないよう捨てる
+  document.addEventListener('click', (e) => {
+    if (rescued && e.isTrusted && Date.now() - rescued.at < 800 && rescued.b.contains(e.target)) { e.stopImmediatePropagation(); e.preventDefault(); rescued = null; }
+  }, true);
   // 音の大きさ：小さめ（標準）・ふつう・大きめ
   const VOL = { small: 0.6, normal: 1, large: 1.6 };
   function volMul() { return VOL[set().pageVol] || VOL.small; }
@@ -248,7 +286,7 @@
     row.after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.45.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.46.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
