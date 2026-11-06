@@ -42,31 +42,26 @@
     } catch (e) {}
   }
   ['touchstart', 'pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { once: true, capture: true, passive: true }));
-  // 紙の音（v1.38）：文庫本の1ページをめくるような、小さく軽い「サラッ」。低い音は入れない。
-  //   進む＝明るく上がっていく「サラッ」、戻る＝少し短く下がっていく「スッ」
+  // やさしい紙の音（v1.40）：音ファイルが読めないときの代わり。ふんわり始まり、ふんわり消える小さな「ふわっ」
   function paperSound(ctx, out, t0, strength, dir = 'next') {
     const sr = ctx.sampleRate, fwd = dir !== 'prev';
-    const dur = fwd ? 0.15 : 0.12;
+    const dur = fwd ? 0.22 : 0.18, pk = fwd ? 0.35 : 0.30;
     const b = ctx.createBuffer(1, Math.floor(sr * dur), sr), d = b.getChannelData(0);
     for (let i = 0; i < d.length; i++) {
       const x = i / d.length;
-      // ふわっと立ち上がって、すっと消える。途中で紙がこすれる小さな波を2回
-      const env = Math.min(1, x / 0.12) * Math.pow(1 - x, fwd ? 1.6 : 2.0) * (0.75 + 0.25 * Math.sin(Math.PI * 2 * (fwd ? 2.2 : 1.6) * x));
-      let v = (Math.random() * 2 - 1) * 0.55;
-      if (Math.random() < 0.012) v += (Math.random() * 2 - 1) * 1.6; // 紙のかすかなカサカサ
-      d[i] = v * env;
+      const env = x < pk ? Math.pow(Math.sin(Math.PI / 2 * x / pk), 2) : Math.pow(Math.cos(Math.PI / 2 * (x - pk) / (1 - pk)), 2);
+      d[i] = (Math.random() * 2 - 1) * env;
     }
     const src = ctx.createBufferSource(); src.buffer = b;
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800; hp.Q.value = 0.5;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
-    if (fwd) { bp.frequency.setValueAtTime(3000, t0); bp.frequency.exponentialRampToValueAtTime(6200, t0 + dur); }
-    else { bp.frequency.setValueAtTime(5600, t0); bp.frequency.exponentialRampToValueAtTime(2800, t0 + dur); }
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 9000; // 耳に痛い高い音は抑える
-    const g = ctx.createGain(); g.gain.value = (fwd ? 1.15 : 0.95) * strength;
-    src.connect(hp); hp.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.7;
+    if (fwd) { bp.frequency.setValueAtTime(1300, t0); bp.frequency.exponentialRampToValueAtTime(2300, t0 + dur); }
+    else { bp.frequency.setValueAtTime(2100, t0); bp.frequency.exponentialRampToValueAtTime(1200, t0 + dur); }
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4200; // 耳に刺さる高い音は入れない
+    const g = ctx.createGain(); g.gain.value = (fwd ? 0.13 : 0.11) * strength;
+    src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(out);
     src.start(t0);
   }
-  // v1.39：本をめくった録音（利用者の録音を切り出して整えたもの）を使う。読み込めないときは作った音
+  // v1.40：やさしく小さい音ファイルを使う。読み込めないときは同じ形の作った音
   const rec = { next: null, prev: null, loading: false };
   function loadRec() {
     if (rec.loading || !ac) return;
@@ -79,13 +74,16 @@
     if (!soundOn()) return;
     try {
       unlockAudio(); loadRec();
-      const master = ac.createGain(); master.gain.value = strength;
+      const master = ac.createGain(); master.gain.value = strength * volMul();
       master.connect(ac.destination);
       const buf = rec[dir === 'prev' ? 'prev' : 'next'];
       if (buf) { const s2 = ac.createBufferSource(); s2.buffer = buf; s2.connect(master); s2.start(ac.currentTime + 0.005); }
-      else paperSound(ac, master, ac.currentTime + 0.01, 0.8, dir);
+      else paperSound(ac, master, ac.currentTime + 0.01, 1, dir);
     } catch (e) {}
   }
+  // 音の大きさ：小さめ（標準）・ふつう・大きめ
+  const VOL = { small: 0.6, normal: 1, large: 1.6 };
+  function volMul() { return VOL[set().pageVol] || VOL.small; }
   window.__kcPaperSound = paperSound; // 確認用
 
   // ---------- 曲がりながらめくれるページ ----------
@@ -266,8 +264,16 @@
     const cb = row.querySelector('input');
     const sync = () => { cb.checked = soundOn(); };
     $('btnSettings').addEventListener('click', () => setTimeout(sync, 0));
-    cb.onchange = () => { set().pageSound = cb.checked; save(); if (cb.checked) flipSound(0.9, 'next'); };
-    setTimeout(sync, 1500);
+    cb.onchange = () => { set().pageSound = cb.checked; save(); vrow.style.display = cb.checked ? '' : 'none'; if (cb.checked) flipSound(1, 'next'); };
+    const vrow = document.createElement('div');
+    vrow.className = 'set-row m-vol';
+    vrow.innerHTML = '<span>めくる音の大きさ</span> <select id="optPageVol"><option value="small">小さめ</option><option value="normal">ふつう</option><option value="large">大きめ</option></select>';
+    row.after(vrow);
+    const sel = vrow.querySelector('select');
+    sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
+    const sync2 = () => { sel.value = set().pageVol || 'small'; vrow.style.display = soundOn() ? '' : 'none'; };
+    $('btnSettings').addEventListener('click', () => setTimeout(sync2, 0));
+    setTimeout(() => { sync(); sync2(); }, 1500);
   }
 
   // 大きな単語が途中で改行されないように、はみ出すときは文字を小さくする（熟語は単語の切れ目でだけ改行）
