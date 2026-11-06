@@ -299,7 +299,7 @@
     autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.56.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.57.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => {
@@ -324,6 +324,13 @@
     for (let i = 0; i < 30 && el.scrollWidth > el.clientWidth + 1 && size > 14; i++) {
       size = size * 0.92;
       el.style.setProperty('font-size', size.toFixed(1) + 'px', 'important');
+    }
+    // v1.57：単語の文字が小さくなったときは、スピーカーも合わせて小さくし、単語と意味のすき間を詰める
+    const spk = card.querySelector('.word-row > .speak');
+    if (spk) {
+      const d = Math.round(Math.max(38, Math.min(56, el.getBoundingClientRect().height + 4)));
+      spk.style.width = spk.style.height = d + 'px';
+      const sv = spk.querySelector('svg'); if (sv) sv.style.width = sv.style.height = Math.round(d * 0.5) + 'px';
     }
   }
   new MutationObserver(() => requestAnimationFrame(fitWord)).observe(card, { childList: true });

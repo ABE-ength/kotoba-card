@@ -92,3 +92,9 @@
     transition: width .25s ease; }
   .stage > .card:not(.m-page) { position: relative; z-index: 1; }
 }
+@media (max-width: 760px) {
+  /* v1.57：単語と意味のすき間を少し詰める */
+  .word { line-height: 1.08; }
+  .answer { margin-top: 6px; }
+  .card-body.has-rel .answer { margin-top: 4px; }
+}
