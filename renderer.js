@@ -261,7 +261,7 @@ function renderCard() {
   card.innerHTML = `
     <div class="card-top">
       <span>${S.idx + 1} / ${S.queue.length}</span>
-      <span class="badge ${w.status ? 'b-' + w.status : ''}" title="${w.status ? esc(t('card.nextTip')) : ''}">${w.status ? STATUS[w.status].label : t('status.none')}${t('sep')}${views}${w.status ? t('sep') + (nextReviewDays(w) <= 0 ? t('card.dueNow') : t('card.dueIn', { n: nextReviewDays(w) })) : ''}</span>
+      <span class="badge ${w.status ? 'b-' + w.status : ''}">${w.status ? STATUS[w.status].label : t('status.none')}${t('sep')}${views}</span>
     </div>
     <div class="card-body ${hasRel ? 'has-rel' : ''}">
       <div class="word-row">

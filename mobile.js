@@ -299,7 +299,7 @@
     autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.55.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.56.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => {
