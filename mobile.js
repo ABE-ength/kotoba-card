@@ -278,7 +278,7 @@
     autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.52.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.53.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => {
@@ -296,6 +296,9 @@
     const el = card.querySelector('.word');
     if (!el) return;
     el.style.removeProperty('--fit');
+    // v1.53：短い熟語（18文字まで。例：name A B）は改行せず1行に収める。長い熟語だけ単語の切れ目で改行
+    const short = el.textContent.trim().length <= 18;
+    el.style.whiteSpace = short ? 'nowrap' : '';
     let size = parseFloat(getComputedStyle(el).fontSize) || 40;
     for (let i = 0; i < 30 && el.scrollWidth > el.clientWidth + 1 && size > 14; i++) {
       size = size * 0.92;

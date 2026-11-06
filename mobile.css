@@ -48,7 +48,9 @@
   .m-shade.prev { background: linear-gradient(270deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.35)); }
   /* めくっている間、下に見える次の単語はぼんやり（めくるほどはっきり） */
   .stage.m-peeking > .card:not(.m-page) > * { filter: blur(calc((1 - var(--pk, 0)) * 3.5px)); opacity: calc(.38 + var(--pk, 0) * .62); }
-  .card-top { top: 12px; left: 16px; right: 16px; font-size: 12px; }
+  .card-top { top: 12px; left: 16px; right: 16px; font-size: 12px; justify-content: center; }
+  /* v1.53：「未評価・未確認」などは中央に（右上のスピーカーとぶつからないように）。番号は左に */
+  .card-top > span:first-child { position: absolute; left: 0; }
   .dict { padding: 0 2px; }
   .dict-s { white-space: normal; }
   .rel-list { display: flex !important; flex-direction: column; }
