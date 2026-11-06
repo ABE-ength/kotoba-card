@@ -149,6 +149,16 @@
 
   // ---------- オフライン対応（Service Worker） ----------
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+        // アプリに戻ってきたときにも新しい版がないか確かめる
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+      }).catch(() => {});
+    });
+    // 新しい版が使えるようになったら、一度だけ自動で読み直す（初めての登録のときは除く）
+    if (navigator.serviceWorker.controller) {
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload(); } });
+    }
   }
 })();

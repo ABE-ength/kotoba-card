@@ -268,6 +268,10 @@
     vrow.className = 'set-row m-vol';
     vrow.innerHTML = '<span>めくる音の大きさ</span> <select id="optPageVol"><option value="small">小さめ</option><option value="normal">ふつう</option><option value="large">大きめ</option></select>';
     row.after(vrow);
+    const ver = document.createElement('div');
+    ver.className = 'set-row m-ver';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.42.0</span>';
+    vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
     const sync2 = () => { sel.value = set().pageVol || 'small'; vrow.style.display = soundOn() ? '' : 'none'; };
