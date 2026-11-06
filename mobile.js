@@ -21,15 +21,38 @@
   $('btnSettings').addEventListener('click', () => { if (mq.matches) close(); });
   $('btnAdd').addEventListener('click', () => { if (mq.matches) close(); });
 
-  // カードを左右にスワイプ → 次・前の単語
-  let sx = 0, sy = 0, st = 0;
-  const card = $('card');
-  card.addEventListener('touchstart', (e) => { const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); }, { passive: true });
-  card.addEventListener('touchend', (e) => {
+  // 左右にフリック → 次・前の単語（カードの下・理解度ボタン・自動再生の部分も含む画面全体で）
+  // ただし、横にスクロールする部分（出題順・速度など）や入力欄・選択欄の上では反応しない
+  let sx = 0, sy = 0, st = 0, sOk = false;
+  const main = document.querySelector('.main');
+  const NO_SWIPE = '.topbar, .speeds, select, input, textarea, .m-backdrop, .overlay';
+  main.addEventListener('touchstart', (e) => {
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now();
+    sOk = e.touches.length === 1 && !(e.target.closest && e.target.closest(NO_SWIPE));
+  }, { passive: true });
+  main.addEventListener('touchend', (e) => {
+    if (!sOk || !mq.matches) return;
     const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
     if (Date.now() - st > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     (dx < 0 ? $('btnNext') : $('btnPrev')).click();
   }, { passive: true });
+  const card = $('card');
+
+  // 大きな単語が途中で改行されないように、はみ出すときは文字を小さくする（熟語は単語の切れ目でだけ改行）
+  function fitWord() {
+    const el = card.querySelector('.word');
+    if (!el) return;
+    el.style.removeProperty('--fit');
+    let size = parseFloat(getComputedStyle(el).fontSize) || 40;
+    for (let i = 0; i < 30 && el.scrollWidth > el.clientWidth + 1 && size > 14; i++) {
+      size = size * 0.92;
+      el.style.setProperty('font-size', size.toFixed(1) + 'px', 'important');
+    }
+  }
+  new MutationObserver(() => requestAnimationFrame(fitWord)).observe(card, { childList: true });
+  window.addEventListener('resize', () => requestAnimationFrame(fitWord));
+  requestAnimationFrame(fitWord);
+
   // 引き出しも左スワイプで閉じる
   const side = document.querySelector('.side');
   side.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });

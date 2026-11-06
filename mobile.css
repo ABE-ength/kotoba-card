@@ -34,6 +34,9 @@
   .nav svg { width: 18px; height: 18px; }
   .nav-prev { left: 2px; } .nav-next { right: 2px; }
   .card { padding: 34px 16px 12px; border-radius: 22px; touch-action: pan-y; }
+  .word { word-break: normal; overflow-wrap: normal; hyphens: none; max-width: 100%; min-width: 0; flex: 0 1 auto; overflow: hidden; }
+  .word-row { gap: 10px; }
+  .main { touch-action: pan-y; }
   .card-top { top: 12px; left: 16px; right: 16px; font-size: 12px; }
   .dict { padding: 0 2px; }
   .dict-s { white-space: normal; }
