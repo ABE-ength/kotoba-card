@@ -61,7 +61,10 @@ function newWord(o) {
     webState: typeof o.webState === 'string' ? o.webState : undefined,
     ipa: o.ipa && typeof o.ipa === 'object' ? { uk: String(o.ipa.uk || ''), us: String(o.ipa.us || '') } : undefined,
     ipaFor: typeof o.ipaFor === 'string' ? o.ipaFor : undefined,
-    dictWeb: o.dictWeb && typeof o.dictWeb === 'object' && Array.isArray(o.dictWeb.blocks) ? o.dictWeb : undefined
+    dictWeb: o.dictWeb && typeof o.dictWeb === 'object' && Array.isArray(o.dictWeb.blocks) ? o.dictWeb : undefined,
+    // v1.34 同期用：最後に内容（単語・意味・理解度など）が変わった時刻と、その目印
+    mtime: Number(o.mtime) || 0, _h: typeof o._h === 'string' ? o._h : undefined,
+    sample: o.sample === true ? true : undefined // 初回に自動で入るサンプル単語（同期で重複させないため）
   };
 }
 
@@ -69,9 +72,20 @@ function newWord(o) {
 let saveTimer = null;
 function save() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { saveTimer = null; store.save(db).catch(() => toast(t('toast.saveFail'))); }, 250);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    if (window.KCSync) KCSync.touch(); // 変わった単語に更新時刻をつける（同期用）
+    store.save(db).catch(() => toast(t('toast.saveFail')));
+    if (window.KCSync) KCSync.changed();
+  }, 250);
 }
-window.addEventListener('beforeunload', () => { if (saveTimer) { clearTimeout(saveTimer); store.saveSync(db); } });
+window.addEventListener('beforeunload', () => { if (saveTimer) { clearTimeout(saveTimer); if (window.KCSync) KCSync.touch(); store.saveSync(db); } });
+// 削除した単語を記録（同期したとき、ほかの端末からよみがえらないように）
+function markDeleted(ids) {
+  if (!db.deleted || typeof db.deleted !== 'object') db.deleted = {};
+  const now = Date.now();
+  for (const id of ids) if (id) db.deleted[id] = now;
+}
 
 // ---------- 出題順 ----------
 const rank = (w) => ({ no: 0, some: 1 }[w.status] ?? (w.status === 'yes' ? 3 : 2));
@@ -1059,6 +1073,7 @@ async function deleteCurrent() {
     { label: t('del.ok'), value: true, cls: 'btn-danger' }
   ]);
   if (!ok) return;
+  markDeleted([w.id]);
   db.words = db.words.filter(x => x.id !== w.id);
   const i = S.idx;
   S.queue = S.queue.filter(id => id !== w.id);
@@ -1210,6 +1225,8 @@ async function doImport() {
         ]);
         if (!mode) return;
         if (mode === 'replace') {
+          const keep = new Set(incoming.map(x => x.id));
+          markDeleted(db.words.filter(x => !keep.has(x.id)).map(x => x.id));
           db.words = incoming;
           if (j.settings) db.settings = { ...DEFAULT_SETTINGS, ...j.settings };
           save(); buildQueue(); renderAll(); relatedBackground();
@@ -1411,7 +1428,7 @@ function bind() {
   } else {
     // 初めて使うとき：サンプル単語を作る
     const tr = SAMPLE_TR.ja;
-    db.words = SAMPLE_WORDS.map(([word, example], i) => newWord({ word, meaning: tr[i][0], example, exampleJa: tr[i][1], created: Date.now() + i }));
+    db.words = SAMPLE_WORDS.map(([word, example], i) => ({ ...newWord({ word, meaning: tr[i][0], example, exampleJa: tr[i][1], created: Date.now() + i }), sample: true }));
     save();
   }
   // 画面は日本語のみ（v1.17で多言語表示を削除。以前に別の言語を選んでいた場合も日本語に戻す）

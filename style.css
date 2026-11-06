@@ -589,3 +589,19 @@ select:focus { border-color: var(--accent); }
 .dict-pos[data-pos="副"] { background: #F1E9F8; color: #7E58A6; }
 .dict-src { display: block; width: fit-content; margin: 0 auto 2px; font-size: .8em; padding: 0 .55em; border: 1px solid var(--line2); border-radius: 99px; color: var(--sub); }
 .card-body.has-rel .dict { font-size: clamp(11px, min(2.3cqh, 1.9cqw), 13.5px); line-height: 1.5; }
+
+/* v1.34 Googleドライブ同期 */
+.sync-chip { display: inline-flex; align-items: center; gap: 5px; border: 1.5px solid var(--line); background: var(--panel); color: var(--sub);
+  border-radius: 999px; padding: 5px 11px; font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer; flex: none; }
+.sync-chip[hidden] { display: none; }
+.sync-chip b { color: var(--accent); font-size: 14px; }
+.sync-chip.warn { border-color: var(--org); color: #A8611A; background: #FFF5E8; }
+.sync-chip.warn b { color: var(--org); }
+.sync-chip.busy b { animation: syncpulse 1s ease-in-out infinite; }
+@keyframes syncpulse { 50% { opacity: .3; } }
+#syncPanel .set-row input { flex: 1; min-width: 0; font-family: 'Nunito', var(--font); font-size: 14px; padding: 9px 14px; border: 1.5px solid var(--line2); border-radius: 12px; background: var(--panel); outline: none; }
+#syncPanel .set-row input:focus { border-color: var(--accent); }
+#syncPanel .set-row > span:first-child { width: 180px; }
+#syncPanel [hidden] { display: none !important; }
+.sync-status { font-size: 13.5px; color: var(--ink); }
+.sync-err { color: var(--red); }

@@ -46,6 +46,10 @@
     const of = $('btnOpenFolder'); if (of) of.style.display = 'none';
   };
   hidePc();
+  // データの説明をスマホ（ブラウザ）向けに
+  const dataHint = 'データはこの端末のブラウザの中に保存しています。ブラウザの「閲覧データの削除」でサイトのデータを消すと単語も消えるので、Googleドライブ同期を使うか、ときどき「バックアップを書き出す」で保存してください。毎日の自動バックアップ（14日分）もブラウザの中に残します。';
+  try { if (typeof I18N !== 'undefined' && I18N.ja) I18N.ja['set.data.hint'] = dataHint; } catch (e) {}
+  document.querySelectorAll('[data-i18n="set.data.hint"]').forEach(el => { el.textContent = dataHint; });
   // 戻るボタン（Android）で引き出し・画面を閉じる
   window.addEventListener('popstate', () => {
     if (document.body.classList.contains('drawer-open')) { close(); return; }

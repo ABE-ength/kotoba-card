@@ -58,6 +58,9 @@
     padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
   .modal input, .modal textarea, .modal select { font-size: 16px; } /* 拡大されないように */
   .pc-only { display: none !important; }
+  #syncPanel .set-row { flex-wrap: wrap; }
+  #syncPanel .set-row > span:first-child { width: 100%; }
+  .sync-chip { padding: 5px 9px; font-size: 12px; }
   .modal-foot small { display: none; }
   .modal-foot .btn { white-space: nowrap; padding-left: 16px; padding-right: 16px; }
   .modal-foot { flex-wrap: wrap; justify-content: flex-end; }
