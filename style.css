@@ -616,3 +616,6 @@ select:focus { border-color: var(--accent); }
 /* v1.47：追加・編集画面の保存・キャンセルを一番上に。例の文字はうすく */
 .modal-foot.modal-foot-top { margin-top: 0; margin-bottom: 14px; }
 .field input::placeholder, .field textarea::placeholder { color: currentColor; opacity: .28; }
+/* v1.48：追加・編集画面は、見出しの右に「保存」だけを置く（キャンセルなどは下） */
+.modal-head { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+.modal-head h2 { margin: 0; flex: 1; }

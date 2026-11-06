@@ -269,30 +269,26 @@
   function onEnd() { release(false); }
   function onCancel() { release(true); }
 
-  // 設定に「めくる音」を追加
+  // 設定に「めくる音」を追加（v1.48：なし・小さめ・ふつう・大きめ から選ぶ）
   const autoSpeak = $('optAutoSpeak');
   if (autoSpeak) {
-    const row = document.createElement('label');
-    row.className = 'set-row chk';
-    row.innerHTML = '<input type="checkbox" id="optPageSound"> <span>単語を移るときに、ページをめくる音を鳴らす（自動再生中は鳴らしません）</span>';
-    autoSpeak.closest('label').after(row);
-    const cb = row.querySelector('input');
-    const sync = () => { cb.checked = soundOn(); };
-    $('btnSettings').addEventListener('click', () => setTimeout(sync, 0));
-    cb.onchange = () => { set().pageSound = cb.checked; save(); vrow.style.display = cb.checked ? '' : 'none'; if (cb.checked) flipSound(1, 'next'); };
     const vrow = document.createElement('div');
     vrow.className = 'set-row m-vol';
-    vrow.innerHTML = '<span>めくる音の大きさ</span> <select id="optPageVol"><option value="small">小さめ</option><option value="normal">ふつう</option><option value="large">大きめ</option></select>';
-    row.after(vrow);
+    vrow.innerHTML = '<span>めくる音</span> <select id="optPageVol"><option value="off">なし</option><option value="small">小さめ</option><option value="normal">ふつう</option><option value="large">大きめ</option></select>';
+    autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.47.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.48.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
-    sel.onchange = () => { set().pageVol = sel.value; save(); flipSound(1, 'next'); };
-    const sync2 = () => { sel.value = set().pageVol || 'small'; vrow.style.display = soundOn() ? '' : 'none'; };
-    $('btnSettings').addEventListener('click', () => setTimeout(sync2, 0));
-    setTimeout(() => { sync(); sync2(); }, 1500);
+    sel.onchange = () => {
+      if (sel.value === 'off') set().pageSound = false;
+      else { set().pageSound = true; set().pageVol = sel.value; }
+      save(); flipSound(1, 'next');
+    };
+    const sync = () => { sel.value = soundOn() ? (set().pageVol || 'small') : 'off'; };
+    $('btnSettings').addEventListener('click', () => setTimeout(sync, 0));
+    setTimeout(sync, 1500);
   }
 
   // 大きな単語が途中で改行されないように、はみ出すときは文字を小さくする（熟語は単語の切れ目でだけ改行）

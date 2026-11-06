@@ -75,7 +75,7 @@
   #syncPanel .set-row { flex-wrap: wrap; }
   #syncPanel .set-row > span:first-child { width: 100%; }
   .sync-chip { padding: 5px 9px; font-size: 12px; }
-  .modal-foot small { display: none; }
+  .modal-foot small, .modal-head small { display: none; }
   .modal-foot .btn { white-space: nowrap; padding-left: 16px; padding-right: 16px; }
   .modal-foot { flex-wrap: wrap; justify-content: flex-end; }
 }

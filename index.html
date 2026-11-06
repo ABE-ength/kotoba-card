@@ -135,19 +135,21 @@
 <!-- ===== 追加・編集 ===== -->
 <div class="overlay" id="editModal" hidden>
   <div class="modal">
-    <h2 id="editTitle">単語を追加</h2>
+    <div class="modal-head">
+      <h2 id="editTitle">単語を追加</h2>
+      <button type="submit" form="editForm" class="btn btn-primary" id="editSave"><span data-i18n="save">保存</span> <small>Ctrl+Enter</small></button>
+    </div>
     <form id="editForm" autocomplete="off">
-      <div class="modal-foot modal-foot-top">
-        <label class="chk" id="keepWrap"><input type="checkbox" id="fKeep"> <span data-i18n="edit.keep">続けて追加する</span></label>
-        <div class="spacer"></div>
-        <button type="button" class="btn btn-ghost" id="editCancel" data-i18n="cancel">キャンセル</button>
-        <button type="submit" class="btn btn-primary" id="editSave"><span data-i18n="save">保存</span> <small>Ctrl+Enter</small></button>
-      </div>
       <label class="field"><span><span data-i18n="f.word">単語</span> <em data-i18n="f.required">必須</em></span><input id="fWord" type="text" data-i18n-ph="ph.word" placeholder="例）postpone"></label>
       <label class="field"><span><span data-i18n="f.meaning">意味</span> <em data-i18n="f.required">必須</em></span><input id="fMeaning" type="text" data-i18n-ph="ph.meaning" placeholder="例）延期する"></label>
       <label class="field"><span data-i18n="f.ex">例文</span><textarea id="fEx" rows="2" data-i18n-ph="ph.ex" placeholder="例）The meeting was postponed until Friday."></textarea></label>
       <label class="field"><span data-i18n="f.exja">例文の訳</span><textarea id="fExJa" rows="2" data-i18n-ph="ph.exja" placeholder="例）会議は金曜日まで延期された。"></textarea></label>
       <label class="field"><span data-i18n="f.note">メモ</span><textarea id="fNote" rows="2" data-i18n-ph="ph.note" placeholder="品詞・言い換え・覚え方など"></textarea></label>
+      <div class="modal-foot">
+        <label class="chk" id="keepWrap"><input type="checkbox" id="fKeep"> <span data-i18n="edit.keep">続けて追加する</span></label>
+        <div class="spacer"></div>
+        <button type="button" class="btn btn-ghost" id="editCancel" data-i18n="cancel">キャンセル</button>
+      </div>
     </form>
   </div>
 </div>
