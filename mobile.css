@@ -79,3 +79,13 @@
   .modal-foot .btn { white-space: nowrap; padding-left: 16px; padding-right: 16px; }
   .modal-foot { flex-wrap: wrap; justify-content: flex-end; }
 }
+@media (max-width: 760px) {
+  /* 本の厚み（v1.50）：紙の小口のような細い縞。外側ほど少し短くして厚みに見せる */
+  .m-book { position: absolute; z-index: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, var(--panel) 0 1.25px, var(--line2) 1.25px 2px);
+    box-shadow: 0 1px 3px rgba(40,60,90,.18);
+    transition: width .25s ease, left .25s ease; }
+  .m-book.l { clip-path: polygon(0 8px, 100% 0, 100% 100%, 0 calc(100% - 8px)); border-left: 1px solid var(--line2); }
+  .m-book.r { clip-path: polygon(0 0, 100% 8px, 100% calc(100% - 8px), 0 100%); border-right: 1px solid var(--line2); }
+  .stage > .card:not(.m-page) { position: relative; z-index: 1; }
+}

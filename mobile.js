@@ -278,7 +278,7 @@
     autoSpeak.closest('label').after(vrow);
     const ver = document.createElement('div');
     ver.className = 'set-row m-ver';
-    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.49.0</span>';
+    ver.innerHTML = '<span style="opacity:.6;font-size:.85em">スマホ版 v1.50.0</span>';
     vrow.after(ver);
     const sel = vrow.querySelector('select');
     sel.onchange = () => {
@@ -305,6 +305,29 @@
   new MutationObserver(() => requestAnimationFrame(fitWord)).observe(card, { childList: true });
   window.addEventListener('resize', () => requestAnimationFrame(fitWord));
   requestAnimationFrame(fitWord);
+
+  // ---------- 本の厚みで進み具合を表す（v1.50） ----------
+  // カードの左に「読んだページ」、右に「残りのページ」の束を、紙の小口のように細く描く。
+  // カードの外側の余白（左右8px）だけを使うので、カードの表示面積は変わらない
+  const BOOK_MAX = 8; // 片側の最大の厚み（px）
+  const bookL = document.createElement('div'), bookR = document.createElement('div');
+  bookL.className = 'm-book l'; bookR.className = 'm-book r';
+  bookL.setAttribute('aria-hidden', 'true'); bookR.setAttribute('aria-hidden', 'true');
+  stage.prepend(bookR); stage.prepend(bookL);
+  function updateBook() {
+    const n = (S.queue || []).length;
+    if (!mq.matches || n < 2 || !card.offsetParent) { bookL.style.display = bookR.style.display = 'none'; return; }
+    const p = Math.max(0, Math.min(1, S.idx / (n - 1)));
+    const sr = stage.getBoundingClientRect(), cr = card.getBoundingClientRect();
+    const inset = 16, top = cr.top - sr.top + inset, h = Math.max(0, cr.height - inset * 2);
+    const wl = Math.round((1.5 + (BOOK_MAX - 1.5) * p) * 2) / 2, wr = Math.round((1.5 + (BOOK_MAX - 1.5) * (1 - p)) * 2) / 2;
+    Object.assign(bookL.style, { display: '', top: top + 'px', height: h + 'px', width: wl + 'px', left: (cr.left - sr.left - wl) + 'px' });
+    Object.assign(bookR.style, { display: '', top: top + 'px', height: h + 'px', width: wr + 'px', left: (cr.right - sr.left) + 'px' });
+    bookL.title = bookR.title = `${S.idx + 1} / ${n}`;
+  }
+  new MutationObserver(() => requestAnimationFrame(updateBook)).observe(card, { childList: true });
+  window.addEventListener('resize', () => requestAnimationFrame(updateBook));
+  requestAnimationFrame(updateBook);
 
   // 引き出しも左スワイプで閉じる
   let sx = 0, sy = 0;
