@@ -325,6 +325,13 @@
       size = size * 0.92;
       el.style.setProperty('font-size', size.toFixed(1) + 'px', 'important');
     }
+    // v1.57：文字を小さくしたとき、スピーカーボタンの高さで単語と意味の間が空きすぎないようにする
+    const sp = card.querySelector('.word-row > .speak');
+    if (sp) {
+      sp.style.marginTop = sp.style.marginBottom = '';
+      const over = sp.offsetHeight - el.offsetHeight;
+      if (over > 4) sp.style.marginTop = sp.style.marginBottom = (-over / 2) + 'px';
+    }
     // v1.57：単語の文字が小さくなったときは、スピーカーも合わせて小さくし、単語と意味のすき間を詰める
     const spk = card.querySelector('.word-row > .speak');
     if (spk) {
