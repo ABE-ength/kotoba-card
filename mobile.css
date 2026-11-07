@@ -98,3 +98,10 @@
   .answer { margin-top: 6px; }
   .card-body.has-rel .answer { margin-top: 4px; }
 }
+@media (max-width: 760px) {
+  /* 発音記号を小さくして場所を取らないように（v1.58） */
+  .ipa { gap: 2px 10px; margin-top: 0; }
+  .ipa-item { gap: 4px; }
+  .ipa-lab { font-size: 9.5px; padding: 0 4px; line-height: 1.4; }
+  .ipa-txt, .card-body.has-rel .ipa-txt { font-size: 15px; padding-top: .18em; letter-spacing: 0; }
+}
